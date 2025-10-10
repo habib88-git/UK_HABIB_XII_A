@@ -64,7 +64,7 @@ class DashboardController extends Controller
         }
 
         // Ambil produk dengan stok minimum (<= 25)
-        $stokMinimum = Produks::where('stok', '<=', 25)->get();
+        $stokMinimum = Produks::where('stok', '<=', 500)->get();
 
         // 🔹 Produk terlaris (Top 5)
         $produkTerlaris = DetailPenjualans::join('tbl_produks', 'tbl_detail_penjualans.produk_id', '=', 'tbl_produks.produk_id')

@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Auth;
 use App\Models\Penjualans;
 use App\Models\Pelanggans;
 use App\Models\Users;
@@ -79,7 +80,7 @@ class PenjualanController extends Controller
             'total_harga'       => $total,
             'diskon'            => $nominalDiskon,
             'pelanggan_id'      => $request->pelanggan_id,
-            'user_id'           => 1,
+            'user_id'           => Auth::id(),
         ]);
 
         // Simpan detail & kurangi stok
@@ -137,7 +138,6 @@ class PenjualanController extends Controller
 
     public function destroy(string $id)
     {
-        //Penjualans::where('penjualan_id',$id)->delete();
-        //return redirect()->route('penjualan.index')->with('success','Data berhasil dihapus');
+        //
     }
 }
