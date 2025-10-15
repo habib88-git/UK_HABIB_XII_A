@@ -24,24 +24,37 @@ class DashboardController extends Controller
         $totalKategori  = Kategoris::count();
         $totalProduk    = Produks::count();
         $totalPelanggan = Pelanggans::count();
-        $totalPenjualan = Penjualans::count();
 
-        // Hitung total profit
+        // 🔹 Total Penjualan berdasarkan tahun terpilih
+        $totalPenjualan = Penjualans::whereYear('created_at', $tahun)->count();
+
+        // 🔹 Total Profit berdasarkan tahun terpilih
         $totalProfit = DetailPenjualans::join('tbl_produks', 'tbl_detail_penjualans.produk_id', '=', 'tbl_produks.produk_id')
+            ->join('tbl_penjualans', 'tbl_detail_penjualans.penjualan_id', '=', 'tbl_penjualans.penjualan_id')
+            ->whereYear('tbl_penjualans.created_at', $tahun)
             ->select(DB::raw('SUM(((tbl_detail_penjualans.subtotal / tbl_detail_penjualans.jumlah_produk) - tbl_produks.harga_beli) * tbl_detail_penjualans.jumlah_produk) as profit'))
             ->value('profit') ?? 0;
 
-        // Ambil data penjualan per bulan sesuai tahun
+        // 🔹 Total Revenue (Pendapatan)
+        $totalRevenue = Penjualans::whereYear('created_at', $tahun)->sum('total_harga');
+
+        // 🔹 Margin Profit (%)
+        $marginProfit = $totalRevenue > 0 ? round(($totalProfit / $totalRevenue) * 100, 2) : 0;
+
+        // 🔹 Rata-rata nilai transaksi
+        $rataTransaksi = $totalPenjualan > 0 ? round($totalRevenue / $totalPenjualan, 0) : 0;
+
+        // 🔹 Data penjualan per bulan (berdasarkan tahun)
         $penjualan = Penjualans::select(
                 DB::raw('MONTH(created_at) as bulan'),
                 DB::raw('COUNT(*) as total')
             )
             ->whereYear('created_at', $tahun)
             ->groupBy('bulan')
-            ->pluck('total','bulan')
+            ->pluck('total', 'bulan')
             ->toArray();
 
-        // Ambil data profit per bulan sesuai tahun
+        // 🔹 Data profit per bulan (berdasarkan tahun)
         $profitPerBulan = DetailPenjualans::join('tbl_produks', 'tbl_detail_penjualans.produk_id', '=', 'tbl_produks.produk_id')
             ->join('tbl_penjualans', 'tbl_detail_penjualans.penjualan_id', '=', 'tbl_penjualans.penjualan_id')
             ->select(
@@ -53,18 +66,30 @@ class DashboardController extends Controller
             ->pluck('profit', 'bulan')
             ->toArray();
 
-        // Siapkan data grafik
+        // 🔹 Data revenue per bulan
+        $revenuePerBulan = Penjualans::select(
+                DB::raw('MONTH(created_at) as bulan'),
+                DB::raw('SUM(total_harga) as revenue')
+            )
+            ->whereYear('created_at', $tahun)
+            ->groupBy('bulan')
+            ->pluck('revenue', 'bulan')
+            ->toArray();
+
+        // 🔹 Siapkan data grafik
         $labels = [];
         $data   = [];
         $dataProfit = [];
+        $dataRevenue = [];
         for ($i = 1; $i <= 12; $i++) {
-            $labels[] = date("F", mktime(0,0,0,$i,1));
+            $labels[] = date("F", mktime(0, 0, 0, $i, 1));
             $data[]   = $penjualan[$i] ?? 0;
             $dataProfit[] = $profitPerBulan[$i] ?? 0;
+            $dataRevenue[] = $revenuePerBulan[$i] ?? 0;
         }
 
-        // Ambil produk dengan stok minimum (<= 25)
-        $stokMinimum = Produks::where('stok', '<=', 500)->get();
+        // 🔹 Ambil produk dengan stok minimum (<= 50)
+        $stokMinimum = Produks::where('stok', '<=', 50)->get();
 
         // 🔹 Produk terlaris (Top 5)
         $produkTerlaris = DetailPenjualans::join('tbl_produks', 'tbl_detail_penjualans.produk_id', '=', 'tbl_produks.produk_id')
@@ -77,6 +102,94 @@ class DashboardController extends Controller
         $produkLabels = $produkTerlaris->pluck('nama_produk');
         $produkData   = $produkTerlaris->pluck('total_terjual');
 
+        // 🔹 Produk dengan profit tertinggi (Top 5)
+        $produkProfitTertinggi = DetailPenjualans::join('tbl_produks', 'tbl_detail_penjualans.produk_id', '=', 'tbl_produks.produk_id')
+            ->select(
+                'tbl_produks.nama_produk',
+                DB::raw('SUM(((tbl_detail_penjualans.subtotal / tbl_detail_penjualans.jumlah_produk) - tbl_produks.harga_beli) * tbl_detail_penjualans.jumlah_produk) as total_profit')
+            )
+            ->groupBy('tbl_produks.nama_produk')
+            ->orderByDesc('total_profit')
+            ->limit(5)
+            ->get();
+
+        // 🔹 Kategori terlaris
+        $kategoriTerlaris = DetailPenjualans::join('tbl_produks', 'tbl_detail_penjualans.produk_id', '=', 'tbl_produks.produk_id')
+            ->join('tbl_kategoris', 'tbl_produks.kategori_id', '=', 'tbl_kategoris.kategori_id')
+            ->select(
+                'tbl_kategoris.nama_kategori',
+                DB::raw('SUM(tbl_detail_penjualans.jumlah_produk) as total_terjual')
+            )
+            ->groupBy('tbl_kategoris.nama_kategori')
+            ->orderByDesc('total_terjual')
+            ->limit(5)
+            ->get();
+
+        $kategoriLabels = $kategoriTerlaris->pluck('nama_kategori');
+        $kategoriData = $kategoriTerlaris->pluck('total_terjual');
+
+        // 🔹 Pelanggan setia (Top 5 berdasarkan jumlah transaksi)
+        $pelangganSetia = Penjualans::join('tbl_pelanggans', 'tbl_penjualans.pelanggan_id', '=', 'tbl_pelanggans.pelanggan_id')
+            ->select(
+                'tbl_pelanggans.nama_pelanggan',
+                DB::raw('COUNT(*) as total_transaksi'),
+                DB::raw('SUM(tbl_penjualans.total_harga) as total_belanja')
+            )
+            ->groupBy('tbl_pelanggans.nama_pelanggan')
+            ->orderByDesc('total_transaksi')
+            ->limit(5)
+            ->get();
+
+        // 🔹 Transaksi terbaru (5 terakhir)
+        $transaksiTerbaru = Penjualans::with('pelanggan', 'user')
+            ->orderByDesc('created_at')
+            ->limit(5)
+            ->get();
+
+        // 🔹 Performa Kasir (berdasarkan tahun)
+        $performaKasir = Penjualans::join('users', 'tbl_penjualans.user_id', '=', 'users.id')
+            ->whereYear('tbl_penjualans.created_at', $tahun)
+            ->select(
+                'users.name',
+                DB::raw('COUNT(*) as total_transaksi'),
+                DB::raw('SUM(tbl_penjualans.total_harga) as total_pendapatan')
+            )
+            ->groupBy('users.name')
+            ->orderByDesc('total_transaksi')
+            ->get();
+
+        $kasirLabels = $performaKasir->pluck('name');
+        $kasirData = $performaKasir->pluck('total_transaksi');
+
+        // 🔹 Nilai total inventory
+        $nilaiInventory = Produks::select(DB::raw('SUM(stok * harga_jual) as total'))->value('total') ?? 0;
+
+        // 🔹 Produk slow moving (tidak terjual dalam 30 hari terakhir)
+        $produkSlowMoving = Produks::whereNotIn('produk_id', function($query) {
+                $query->select('produk_id')
+                    ->from('tbl_detail_penjualans')
+                    ->join('tbl_penjualans', 'tbl_detail_penjualans.penjualan_id', '=', 'tbl_penjualans.penjualan_id')
+                    ->where('tbl_penjualans.created_at', '>=', Carbon::now()->subDays(30));
+            })
+            ->where('stok', '>', 0)
+            ->limit(10)
+            ->get();
+
+        // 🔹 Perbandingan bulan ini vs bulan lalu
+        $bulanIni = Penjualans::whereMonth('created_at', date('m'))
+            ->whereYear('created_at', date('Y'))
+            ->sum('total_harga');
+
+        $bulanLalu = Penjualans::whereMonth('created_at', date('m', strtotime('-1 month')))
+            ->whereYear('created_at', date('Y', strtotime('-1 month')))
+            ->sum('total_harga');
+
+        $pertumbuhanBulanan = $bulanLalu > 0 ? round((($bulanIni - $bulanLalu) / $bulanLalu) * 100, 2) : 0;
+
+        // 🔹 Tambahan info rata-rata penjualan & profit
+        $rataPenjualan = $totalPenjualan > 0 ? round($totalPenjualan / 12, 2) : 0;
+        $rataProfit    = $totalProfit > 0 ? round($totalProfit / 12, 2) : 0;
+
         return view('dashboard.admin', compact(
             'totalUser',
             'totalKategori',
@@ -84,53 +197,71 @@ class DashboardController extends Controller
             'totalPelanggan',
             'totalPenjualan',
             'totalProfit',
+            'totalRevenue',
+            'marginProfit',
+            'rataTransaksi',
             'labels',
             'data',
             'dataProfit',
+            'dataRevenue',
             'tahun',
             'stokMinimum',
             'produkLabels',
-            'produkData'
+            'produkData',
+            'produkProfitTertinggi',
+            'kategoriLabels',
+            'kategoriData',
+            'pelangganSetia',
+            'transaksiTerbaru',
+            'performaKasir',
+            'kasirLabels',
+            'kasirData',
+            'nilaiInventory',
+            'produkSlowMoving',
+            'bulanIni',
+            'bulanLalu',
+            'pertumbuhanBulanan',
+            'rataPenjualan',
+            'rataProfit'
         ));
     }
 
     public function kasirdashboard()
-{
-    $tanggalHariIni = Carbon::today();
+    {
+        $tanggalHariIni = Carbon::today();
 
-    $totalTransaksi = Penjualans::whereDate('tanggal_penjualan', $tanggalHariIni)->count();
-    $totalPendapatan = Penjualans::whereDate('tanggal_penjualan', $tanggalHariIni)->sum('total_harga');
+        $totalTransaksi = Penjualans::whereDate('tanggal_penjualan', $tanggalHariIni)->count();
+        $totalPendapatan = Penjualans::whereDate('tanggal_penjualan', $tanggalHariIni)->sum('total_harga');
 
-    $produkTerjual = DetailPenjualans::join('tbl_produks', 'tbl_detail_penjualans.produk_id', '=', 'tbl_produks.produk_id')
-        ->select('tbl_produks.nama_produk', DB::raw('SUM(tbl_detail_penjualans.jumlah_produk) as total'))
-        ->whereDate('tbl_detail_penjualans.created_at', $tanggalHariIni)
-        ->groupBy('tbl_produks.nama_produk')
-        ->orderByDesc('total')
-        ->limit(5)
-        ->get();
+        $produkTerjual = DetailPenjualans::join('tbl_produks', 'tbl_detail_penjualans.produk_id', '=', 'tbl_produks.produk_id')
+            ->select('tbl_produks.nama_produk', DB::raw('SUM(tbl_detail_penjualans.jumlah_produk) as total'))
+            ->whereDate('tbl_detail_penjualans.created_at', $tanggalHariIni)
+            ->groupBy('tbl_produks.nama_produk')
+            ->orderByDesc('total')
+            ->limit(5)
+            ->get();
 
-    $transaksiTerbaru = Penjualans::with('pelanggan')
-        ->orderByDesc('tanggal_penjualan')
-        ->limit(5)
-        ->get();
+        $transaksiTerbaru = Penjualans::with('pelanggan')
+            ->orderByDesc('tanggal_penjualan')
+            ->limit(5)
+            ->get();
 
-    $stokMenipis = Produks::where('stok', '<', 10)
-        ->orderBy('stok', 'asc')
-        ->limit(5)
-        ->get();
+        $stokMenipis = Produks::where('stok', '<', 10)
+            ->orderBy('stok', 'asc')
+            ->limit(5)
+            ->get();
 
-    $produkLabels = $produkTerjual->pluck('nama_produk');
-    $produkData   = $produkTerjual->pluck('total');
+        $produkLabels = $produkTerjual->pluck('nama_produk');
+        $produkData   = $produkTerjual->pluck('total');
 
-    return view('dashboard.kasir', compact(
-        'totalTransaksi',
-        'totalPendapatan',
-        'produkLabels',
-        'produkData',
-        'tanggalHariIni',
-        'transaksiTerbaru',
-        'stokMenipis'
-    ));
-}
-
+        return view('dashboard.kasir', compact(
+            'totalTransaksi',
+            'totalPendapatan',
+            'produkLabels',
+            'produkData',
+            'tanggalHariIni',
+            'transaksiTerbaru',
+            'stokMenipis'
+        ));
+    }
 }

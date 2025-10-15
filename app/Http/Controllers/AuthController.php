@@ -57,7 +57,7 @@ class AuthController extends Controller
             'no_telp'=> $request->no_telp,
             'alamat' => $request->alamat,
             'sandi'  => Hash::make($request->sandi),
-            'role'   => 'kasir', // default role
+            'role'   => 'admin', // default role
         ]);
 
         Auth::login($user);
