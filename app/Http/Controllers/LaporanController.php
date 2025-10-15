@@ -41,8 +41,10 @@ class LaporanController extends Controller
         $penjualans = $query->get();
 
         $pdf = Pdf::loadView('laporan.pdf', compact('penjualans'));
-        return $pdf->download('laporan-penjualan.pdf');
+
+        return $pdf->stream('laporan-penjualan.pdf');
     }
+
 
     public function struk($id)
     {

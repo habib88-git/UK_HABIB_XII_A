@@ -3,8 +3,16 @@
 @section('title', 'Dashboard')
 
 @section('content')
-    <div class="d-sm-flex align-items-center justify-content-between mb-4">
-        <h1 class="h3 mb-0 text-gray-800">Dashboard</h1>
+    <!-- Header dengan background gradient -->
+    <div class="d-flex align-items-center justify-content-between mb-4 p-4 rounded-3"
+        style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
+        <div>
+            <h1 class="h3 mb-1 text-white">Dashboard</h1>
+            <p class="mb-0 text-white-50">Ringkasan statistik dan performa toko</p>
+        </div>
+        <div class="text-white">
+            <i class="fas fa-chart-line fa-2x opacity-75"></i>
+        </div>
     </div>
 
     <!-- Row Statistik -->
@@ -80,7 +88,8 @@
                 <div class="card-body d-flex justify-content-between align-items-center">
                     <div>
                         <div class="text-xs font-weight-bold text-success text-uppercase mb-1">Total Profit</div>
-                        <div class="h5 mb-0 font-weight-bold text-gray-800">Rp {{ number_format($totalProfit, 0, ',', '.') }}</div>
+                        <div class="h5 mb-0 font-weight-bold text-gray-800">Rp
+                            {{ number_format($totalProfit, 0, ',', '.') }}</div>
                     </div>
                     <i class="fas fa-money-bill-wave fa-2x text-gray-300"></i>
                 </div>
@@ -88,58 +97,72 @@
         </div>
     </div>
 
-    <!-- Row Grafik + Stok Minimum -->
+    <!-- Row Grafik -->
     <div class="row">
-        <!-- Grafik Penjualan -->
-        <div class="col-lg-8 mb-4">
-            <div class="card shadow">
-                <div class="card-header d-flex justify-content-between align-items-center">
-                    <h6 class="m-0 font-weight-bold text-primary">Grafik Penjualan & Profit Tahun {{ $tahun }}</h6>
+        <div class="col-12 mb-4">
+            <div class="card shadow border-0">
+                <div class="card-header bg-white d-flex justify-content-between align-items-center py-3">
+                    <h6 class="m-0 font-weight-bold text-primary">
+                        <i class="fas fa-chart-bar me-2"></i> Grafik Penjualan & Profit Tahun {{ $tahun }}
+                    </h6>
                     <form method="GET" action="{{ route('admin.index') }}">
-                        <select name="tahun" class="form-select form-select-sm" onchange="this.form.submit()">
-                            @for ($i = date('Y'); $i >= date('Y') - 5; $i--)
-                                <option value="{{ $i }}" {{ $tahun == $i ? 'selected' : '' }}>
-                                    {{ $i }}
-                                </option>
-                            @endfor
-                        </select>
+                        <div class="input-group input-group-sm" style="width: 120px;">
+                            <select name="tahun" class="form-select form-select-sm border-end-0"
+                                onchange="this.form.submit()">
+                                @for ($i = date('Y'); $i >= date('Y') - 50; $i--)
+                                    <option value="{{ $i }}" {{ $tahun == $i ? 'selected' : '' }}>
+                                        {{ $i }}
+                                    </option>
+                                @endfor
+                            </select>
+                            <span class="input-group-text bg-white border-start-0">
+                                <i class="fas fa-calendar-alt text-primary"></i>
+                            </span>
+                        </div>
                     </form>
                 </div>
-                <div class="card-body">
-                    <canvas id="chartPenjualan" style="height: 280px;"></canvas>
+                <div class="card-body p-3">
+                    <canvas id="chartPenjualan" style="height: 320px;"></canvas>
                 </div>
             </div>
         </div>
+    </div>
 
-        <!-- Stok Minimum + Produk Terlaris -->
-        <div class="col-lg-4 mb-4">
-            <div class="card shadow border-0 mb-4">
-                <div class="card-header bg-danger text-white d-flex align-items-center">
-                    <i class="fas fa-exclamation-triangle me-2"></i>
+    <!-- Row Stok Minimum & Produk Terlaris -->
+    <div class="row">
+        <!-- Stok Minimum -->
+        <div class="col-lg-6 mb-4">
+            <div class="card shadow border-0 h-100">
+                <div class="card-header bg-gradient-danger text-white d-flex align-items-center py-3">
+                    <div class="rounded-circle d-flex align-items-center justify-content-center me-2"
+                        style="width: 30px; height: 30px; background-color: rgba(255,255,255,0.2);">
+                        <i class="fas fa-exclamation-triangle fa-sm"></i>
+                    </div>
                     <h6 class="m-0 font-weight-bold">Stok Minimum</h6>
                 </div>
                 <div class="card-body p-0">
                     @if ($stokMinimum->isEmpty())
-                        <p class="text-muted text-center py-3 mb-0">
-                            Tidak ada produk dengan stok minimum
-                        </p>
+                        <div class="text-center py-4">
+                            <i class="fas fa-check-circle fa-2x text-success mb-2"></i>
+                            <p class="text-muted mb-0">Semua stok produk mencukupi</p>
+                        </div>
                     @else
                         <div class="table-responsive">
-                            <table class="table table-sm align-middle mb-0">
+                            <table class="table table-hover align-middle mb-0">
                                 <thead class="table-light">
                                     <tr>
-                                        <th style="width:70%">Produk</th>
+                                        <th class="ps-3" style="width:70%">Produk</th>
                                         <th class="text-center" style="width:30%">Sisa</th>
                                     </tr>
                                 </thead>
                                 <tbody>
                                     @foreach ($stokMinimum as $produk)
                                         <tr>
-                                            <td class="fw-semibold">{{ $produk->nama_produk }}</td>
+                                            <td class="ps-3 fw-semibold text-truncate" title="{{ $produk->nama_produk }}">
+                                                {{ $produk->nama_produk }}
+                                            </td>
                                             <td class="text-center">
-                                                <span class="badge rounded-pill bg-danger px-3 py-2">
-                                                    {{ $produk->stok }}
-                                                </span>
+                                                {{ $produk->stok }}
                                             </td>
                                         </tr>
                                     @endforeach
@@ -149,19 +172,65 @@
                     @endif
                 </div>
             </div>
+        </div>
 
-            <!-- Produk Terlaris (Pie kecil) -->
-            <div class="card shadow border-0">
-                <div class="card-header bg-primary text-white d-flex align-items-center">
-                    <i class="fas fa-chart-pie me-2"></i>
+        <!-- Produk Terlaris -->
+        <div class="col-lg-6 mb-4">
+            <div class="card shadow border-0 h-100">
+                <div class="card-header bg-gradient-primary text-white d-flex align-items-center py-3">
+                    <div class="rounded-circle d-flex align-items-center justify-content-center me-2"
+                        style="width: 30px; height: 30px; background-color: rgba(255,255,255,0.2);">
+                        <i class="fas fa-chart-pie fa-sm"></i>
+                    </div>
                     <h6 class="m-0 font-weight-bold">Produk Terlaris</h6>
                 </div>
-                <div class="card-body text-center">
-                    <canvas id="produkTerlarisChart" style="height:200px; max-height:200px;"></canvas>
+                <div class="card-body text-center p-4">
+                    <canvas id="produkTerlarisChart" style="height:220px; max-height:220px;"></canvas>
                 </div>
             </div>
         </div>
     </div>
+@endsection
+
+@section('styles')
+    <style>
+        .card-hover {
+            transition: all 0.3s ease;
+        }
+
+        .card-hover:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 15px rgba(0, 0, 0, 0.1) !important;
+        }
+
+        .bg-gradient-primary {
+            background: linear-gradient(135deg, #4e73df 0%, #224abe 100%) !important;
+        }
+
+        .bg-gradient-danger {
+            background: linear-gradient(135deg, #e74a3b 0%, #be2617 100%) !important;
+        }
+
+        .border-left-primary {
+            border-left: 4px solid #4e73df !important;
+        }
+
+        .border-left-success {
+            border-left: 4px solid #1cc88a !important;
+        }
+
+        .border-left-info {
+            border-left: 4px solid #36b9cc !important;
+        }
+
+        .border-left-warning {
+            border-left: 4px solid #f6c23e !important;
+        }
+
+        .border-left-dark {
+            border-left: 4px solid #858796 !important;
+        }
+    </style>
 @endsection
 
 @section('scripts')
@@ -173,11 +242,10 @@
             type: 'bar',
             data: {
                 labels: @json($labels),
-                datasets: [
-                    {
+                datasets: [{
                         label: 'Total Penjualan',
                         data: @json($data),
-                        backgroundColor: 'rgba(54, 162, 235, 0.6)',
+                        backgroundColor: 'rgba(54, 162, 235, 0.7)',
                         borderColor: 'rgba(54, 162, 235, 1)',
                         borderWidth: 1,
                         borderRadius: 6,
@@ -186,7 +254,7 @@
                     {
                         label: 'Profit (Rp)',
                         data: @json($dataProfit),
-                        backgroundColor: 'rgba(75, 192, 192, 0.6)',
+                        backgroundColor: 'rgba(75, 192, 192, 0.7)',
                         borderColor: 'rgba(75, 192, 192, 1)',
                         borderWidth: 1,
                         borderRadius: 6,
@@ -196,20 +264,27 @@
             },
             options: {
                 responsive: true,
-                interaction: { mode: 'index', intersect: false },
+                maintainAspectRatio: false,
+                interaction: {
+                    mode: 'index',
+                    intersect: false
+                },
                 plugins: {
-                    legend: { display: true, position: 'top' },
+                    legend: {
+                        position: 'top',
+                        labels: {
+                            usePointStyle: true,
+                            padding: 15
+                        }
+                    },
                     tooltip: {
+                        backgroundColor: 'rgba(0, 0, 0, 0.7)',
                         callbacks: {
                             label: function(context) {
-                                let label = context.dataset.label || '';
-                                if (label) label += ': ';
-                                if (context.dataset.label === 'Total Penjualan') {
-                                    label += context.parsed.y + ' transaksi';
-                                } else {
-                                    label += 'Rp ' + context.parsed.y.toLocaleString('id-ID');
-                                }
-                                return label;
+                                let label = context.dataset.label + ': ';
+                                return context.dataset.label === 'Total Penjualan' ?
+                                    label + context.parsed.y + ' transaksi' :
+                                    label + 'Rp ' + context.parsed.y.toLocaleString('id-ID');
                             }
                         }
                     }
@@ -217,24 +292,35 @@
                 scales: {
                     y: {
                         beginAtZero: true,
-                        title: { display: true, text: 'Jumlah Transaksi' }
+                        title: {
+                            display: true,
+                            text: 'Jumlah Transaksi'
+                        },
+                        ticks: {
+                            color: '#6c757d'
+                        }
                     },
                     y1: {
                         beginAtZero: true,
                         position: 'right',
-                        grid: { drawOnChartArea: false },
-                        title: { display: true, text: 'Profit (Rp)' },
+                        grid: {
+                            drawOnChartArea: false
+                        },
                         ticks: {
-                            callback: function(value) {
-                                return 'Rp ' + value.toLocaleString('id-ID');
-                            }
+                            color: '#6c757d',
+                            callback: v => v >= 1e6 ? 'Rp ' + (v / 1e6).toFixed(1) + 'Jt' : v >= 1e3 ? 'Rp ' + (v /
+                                1e3).toFixed(0) + 'Rb' : 'Rp ' + v.toLocaleString('id-ID')
+                        },
+                        title: {
+                            display: true,
+                            text: 'Profit (Rp)'
                         }
                     }
                 }
             }
         });
 
-        // Grafik Produk Terlaris (Pie kecil)
+        // Grafik Produk Terlaris
         const ctxPie = document.getElementById('produkTerlarisChart').getContext('2d');
         new Chart(ctxPie, {
             type: 'pie',
@@ -243,25 +329,38 @@
                 datasets: [{
                     data: @json($produkData),
                     backgroundColor: [
-                        'rgba(255, 99, 132, 0.7)',
-                        'rgba(54, 162, 235, 0.7)',
-                        'rgba(255, 206, 86, 0.7)',
-                        'rgba(75, 192, 192, 0.7)',
-                        'rgba(153, 102, 255, 0.7)'
+                        'rgba(255, 99, 132, 0.8)',
+                        'rgba(54, 162, 235, 0.8)',
+                        'rgba(255, 206, 86, 0.8)',
+                        'rgba(75, 192, 192, 0.8)',
+                        'rgba(153, 102, 255, 0.8)',
+                        'rgba(255, 159, 64, 0.8)',
+                        'rgba(199, 199, 199, 0.8)'
                     ],
                     borderColor: '#fff',
-                    borderWidth: 2
+                    borderWidth: 2,
+                    hoverOffset: 10
                 }]
             },
             options: {
                 responsive: true,
                 maintainAspectRatio: false,
                 plugins: {
-                    legend: { position: 'bottom', labels: { boxWidth: 12, font: { size: 11 } } },
+                    legend: {
+                        position: 'bottom',
+                        labels: {
+                            boxWidth: 12,
+                            font: {
+                                size: 10
+                            }
+                        }
+                    },
                     tooltip: {
                         callbacks: {
                             label: function(context) {
-                                return context.label + ': ' + context.parsed + ' terjual';
+                                const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                                const percent = Math.round((context.parsed / total) * 100);
+                                return `${context.label}: ${context.parsed} (${percent}%)`;
                             }
                         }
                     }
