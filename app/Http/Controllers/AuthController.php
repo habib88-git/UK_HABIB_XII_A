@@ -14,16 +14,21 @@ class AuthController extends Controller
         return view('auth.login');
     }
 
-    public function login(Request $request)
+    public function login(Request $request)  // ← PENTING: Harus ada function ini!
     {
         $request->validate([
             'email' => 'required|email',
             'sandi' => 'required',
+            'g-recaptcha-response' => 'required|captcha',
+        ], [
+            'g-recaptcha-response.required' => 'Mohon verifikasi bahwa Anda bukan robot.',
+            'g-recaptcha-response.captcha' => 'Verifikasi reCAPTCHA gagal, coba lagi.',
         ]);
 
+        // PENTING: Ganti 'sandi' jadi 'password'
         $credentials = [
             'email' => $request->email,
-            'password' => $request->sandi,
+            'password' => $request->sandi, // ← Key harus 'password'
         ];
 
         if (Auth::attempt($credentials)) {
@@ -33,7 +38,7 @@ class AuthController extends Controller
 
         return back()->withErrors([
             'email' => 'Email atau sandi salah.',
-        ]);
+        ])->withInput($request->only('email'));
     }
 
     public function showRegisterForm()
@@ -48,7 +53,11 @@ class AuthController extends Controller
             'email'  => 'required|email|unique:tbl_users,email',
             'no_telp'=> 'required|string|max:15',
             'alamat' => 'nullable|string',
-            'sandi'  => 'required|min:6|confirmed', // pakai field sandi_confirmation
+            'sandi'  => 'required|min:8|confirmed',
+            'g-recaptcha-response' => 'required|captcha',
+        ], [
+            'g-recaptcha-response.required' => 'Mohon verifikasi bahwa Anda bukan robot.',
+            'g-recaptcha-response.captcha' => 'Verifikasi reCAPTCHA gagal, coba lagi.',
         ]);
 
         $user = Users::create([
@@ -57,7 +66,7 @@ class AuthController extends Controller
             'no_telp'=> $request->no_telp,
             'alamat' => $request->alamat,
             'sandi'  => Hash::make($request->sandi),
-            'role'   => 'admin', // default role
+            'role'   => 'admin',
         ]);
 
         Auth::login($user);
