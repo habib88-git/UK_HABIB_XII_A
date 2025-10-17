@@ -32,9 +32,9 @@
                 @csrf
 
                 <div class="row">
-                    <div class="col-md-6 mb-4">
+                    <div class="col-md-12 mb-3">
                         <label for="nama_satuan" class="form-label">Nama Satuan</label>
-                        <input type="text" id="nama_satuan" name="nama_satuan" 
+                        <input type="text" id="nama_satuan" name="nama_satuan"
                                class="form-control" value="{{ old('nama_satuan') }}" required>
                     </div>
                 </div>

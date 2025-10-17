@@ -8,7 +8,7 @@
     {{-- Header --}}
     <div class="d-flex justify-content-between align-items-center mb-4">
         <h3 class="text-primary mb-0">
-            <i class="fas fa-truck me-2"></i> Tambah Supplier
+            <i class="fas fa-truck-loading"></i> Tambah Supplier
         </h3>
     </div>
 

@@ -60,10 +60,10 @@
                         <textarea id="alamat" name="alamat" class="form-control" rows="3">{{ old('alamat') }}</textarea>
                     </div>
 
-                    <div class="col-md-6 mb-4">
+                    <div class="col-md-12 mb-3">
                         <label for="role" class="form-label">Akses</label>
-                        <select id="role" name="role" class="form-select" required>
-                            <option value="">-- Pilih Akses --</option>
+                        <select id="role" name="role" class="form-control" required>
+                            <option>-- Pilih Akses --</option>
                             <option value="admin" {{ old('role') == 'admin' ? 'selected' : '' }}>Admin</option>
                             <option value="kasir" {{ old('role') == 'kasir' ? 'selected' : '' }}>Kasir</option>
                         </select>

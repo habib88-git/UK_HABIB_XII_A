@@ -32,7 +32,7 @@
                 @csrf
 
                 <div class="row">
-                    <div class="col-md-6 mb-4">
+                    <div class="col-md-12 mb-3">
                         <label for="nama_kategori" class="form-label">Nama Kategori</label>
                         <input type="text" id="nama_kategori" name="nama_kategori" 
                                class="form-control" value="{{ old('nama_kategori') }}" required>
