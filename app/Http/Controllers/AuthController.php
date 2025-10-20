@@ -49,29 +49,30 @@ class AuthController extends Controller
     public function register(Request $request)
     {
         $request->validate([
-            'name'   => 'required|string|max:100',
-            'email'  => 'required|email|unique:tbl_users,email',
-            'no_telp'=> 'required|string|max:15',
-            'alamat' => 'nullable|string',
-            'sandi'  => 'required|min:8|confirmed',
-            'g-recaptcha-response' => 'required|captcha',
-        ], [
-            'g-recaptcha-response.required' => 'Mohon verifikasi bahwa Anda bukan robot.',
-            'g-recaptcha-response.captcha' => 'Verifikasi reCAPTCHA gagal, coba lagi.',
-        ]);
+        'name'   => 'required|string|max:100',
+        'email'  => 'required|email|unique:tbl_users,email',
+        'no_telp'=> 'required|string|max:15',
+        'alamat' => 'nullable|string',
+        'sandi'  => 'required|min:8|confirmed',
+        'g-recaptcha-response' => 'required|captcha',
+    ], [
+        'g-recaptcha-response.required' => 'Mohon verifikasi bahwa Anda bukan robot.',
+        'g-recaptcha-response.captcha' => 'Verifikasi reCAPTCHA gagal, coba lagi.',
+    ]);
 
-        $user = Users::create([
-            'name'   => $request->name,
-            'email'  => $request->email,
-            'no_telp'=> $request->no_telp,
-            'alamat' => $request->alamat,
-            'sandi'  => Hash::make($request->sandi),
-            'role'   => 'admin',
-        ]);
+    $user = Users::create([
+        'name'   => $request->name,
+        'email'  => $request->email,
+        'no_telp'=> $request->no_telp,
+        'alamat' => $request->alamat,
+        'sandi'  => Hash::make($request->sandi),
+        'role'   => 'admin',
+    ]);
 
-        Auth::login($user);
+    // login langsung setelah registrasi
+    Auth::login($user);
 
-        return redirect('/dashboard')->with('success', 'Registrasi berhasil, selamat datang!');
+    return redirect('/admindashboard')->with('success', 'Registrasi berhasil, selamat datang!');
     }
 
     public function logout(Request $request)

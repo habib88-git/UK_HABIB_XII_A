@@ -5,7 +5,7 @@
         <div class="sidebar-brand-icon">
             <img src="{{ asset('img/logo/logo2.png') }}" alt="Logo">
         </div>
-        <div class="sidebar-brand-text mx-3">RuangAdmin</div>
+        <div class="sidebar-brand-text mx-3">Martkita</div>
     </a>
 
     <!-- Divider -->

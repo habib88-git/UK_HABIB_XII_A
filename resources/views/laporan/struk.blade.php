@@ -38,7 +38,7 @@
 </head>
 <body>
     <div class="center">
-        <h4>Toko XYZ</h4>
+        <h4>Toko Martkita</h4>
         <p>Jl. Kartika 3<br>Telp: 0812-3456-7890</p>
     </div>
     <div class="line"></div>
