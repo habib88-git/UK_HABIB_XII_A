@@ -14,32 +14,45 @@ class AuthController extends Controller
         return view('auth.login');
     }
 
-    public function login(Request $request)  // ← PENTING: Harus ada function ini!
-    {
-        $request->validate([
-            'email' => 'required|email',
-            'sandi' => 'required',
-            'g-recaptcha-response' => 'required|captcha',
-        ], [
-            'g-recaptcha-response.required' => 'Mohon verifikasi bahwa Anda bukan robot.',
-            'g-recaptcha-response.captcha' => 'Verifikasi reCAPTCHA gagal, coba lagi.',
-        ]);
+    public function login(Request $request)
+{
+    $request->validate([
+        'email' => 'required|email',
+        'sandi' => 'required',
+        'g-recaptcha-response' => 'required|captcha',
+    ], [
+        'g-recaptcha-response.required' => 'Mohon verifikasi bahwa Anda bukan robot.',
+        'g-recaptcha-response.captcha' => 'Verifikasi reCAPTCHA gagal, coba lagi.',
+    ]);
 
-        // PENTING: Ganti 'sandi' jadi 'password'
-        $credentials = [
-            'email' => $request->email,
-            'password' => $request->sandi, // ← Key harus 'password'
-        ];
+    $credentials = [
+        'email' => $request->email,
+        'password' => $request->sandi,
+    ];
 
-        if (Auth::attempt($credentials)) {
-            $request->session()->regenerate();
-            return redirect()->intended('/admindashboard')->with('success', 'Login berhasil!');
+    if (Auth::attempt($credentials)) {
+        $request->session()->regenerate();
+
+        // Ambil user yang login
+        $user = Auth::user();
+
+        // Cek role user
+        if ($user->role === 'admin') {
+            return redirect()->intended('/admindashboard')->with('success', 'Login berhasil sebagai admin!');
+        } elseif ($user->role === 'kasir') {
+            return redirect()->intended('/penjualan/create')->with('success', 'Login berhasil sebagai kasir!');
+        } else {
+            // Jika role tidak dikenali
+            Auth::logout();
+            return back()->withErrors(['email' => 'Role pengguna tidak dikenali.'])->withInput();
         }
-
-        return back()->withErrors([
-            'email' => 'Email atau sandi salah.',
-        ])->withInput($request->only('email'));
     }
+
+    return back()->withErrors([
+        'email' => 'Email atau sandi salah.',
+    ])->withInput($request->only('email'));
+}
+
 
     public function showRegisterForm()
     {

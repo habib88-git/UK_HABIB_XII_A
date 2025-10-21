@@ -34,8 +34,8 @@ Route::get('/admindashboard', [DashboardController::class, 'admindashboard'])
     ->name('admin.index')
     ->middleware('admin');
 
-Route::get('/kasirdashboard', [DashboardController::class, 'kasirdashboard'])
-    ->name('kasir.index')
+Route::get('/penjualan/create', [PenjualanController::class, 'create'])
+    ->name('penjualan.create')
     ->middleware('kasir');
 
 // AUTH
@@ -54,13 +54,19 @@ Route::get('/user/{id}/edit', [UserController::class, 'edit'])->name('users.edit
 Route::put('/user/{id}', [UserController::class, 'update'])->name('users.update')->middleware('admin');
 Route::delete('/user/{id}', [UserController::class, 'destroy'])->name('users.destroy')->middleware('admin');
 
-// Routes Pelanggan
+// Routes Pelanggan (Admin)
 Route::get('/pelanggan', [PelangganController::class, 'index'])->name('pelanggan.index')->middleware('admin');
 Route::get('/pelanggan/create', [PelangganController::class, 'create'])->name('pelanggan.create')->middleware('admin');
 Route::post('/pelanggan', [PelangganController::class, 'store'])->name('pelanggan.store')->middleware('admin');
 Route::get('/pelanggan/{id}/edit', [PelangganController::class, 'edit'])->name('pelanggan.edit')->middleware('admin');
 Route::put('/pelanggan/{id}', [PelangganController::class, 'update'])->name('pelanggan.update')->middleware('admin');
 Route::delete('/pelanggan/{id}', [PelangganController::class, 'destroy'])->name('pelanggan.destroy')->middleware('admin');
+
+Route::prefix('kasir')->middleware('kasir')->group(function () {
+    Route::get('/pelanggan', [PelangganController::class, 'index'])->name('kasir.pelanggan.index');
+    Route::get('/pelanggan/create', [PelangganController::class, 'create'])->name('kasir.pelanggan.create');
+    Route::post('/pelanggan', [PelangganController::class, 'store'])->name('kasir.pelanggan.store');
+});
 
 // Routes Kategori
 Route::get('/kategori', [KategoriController::class, 'index'])->name('kategori.index')->middleware('admin');

@@ -225,43 +225,4 @@ class DashboardController extends Controller
             'rataProfit'
         ));
     }
-
-    public function kasirdashboard()
-    {
-        $tanggalHariIni = Carbon::today();
-
-        $totalTransaksi = Penjualans::whereDate('tanggal_penjualan', $tanggalHariIni)->count();
-        $totalPendapatan = Penjualans::whereDate('tanggal_penjualan', $tanggalHariIni)->sum('total_harga');
-
-        $produkTerjual = DetailPenjualans::join('tbl_produks', 'tbl_detail_penjualans.produk_id', '=', 'tbl_produks.produk_id')
-            ->select('tbl_produks.nama_produk', DB::raw('SUM(tbl_detail_penjualans.jumlah_produk) as total'))
-            ->whereDate('tbl_detail_penjualans.created_at', $tanggalHariIni)
-            ->groupBy('tbl_produks.nama_produk')
-            ->orderByDesc('total')
-            ->limit(5)
-            ->get();
-
-        $transaksiTerbaru = Penjualans::with('pelanggan')
-            ->orderByDesc('tanggal_penjualan')
-            ->limit(5)
-            ->get();
-
-        $stokMenipis = Produks::where('stok', '<', 10)
-            ->orderBy('stok', 'asc')
-            ->limit(5)
-            ->get();
-
-        $produkLabels = $produkTerjual->pluck('nama_produk');
-        $produkData   = $produkTerjual->pluck('total');
-
-        return view('dashboard.kasir', compact(
-            'totalTransaksi',
-            'totalPendapatan',
-            'produkLabels',
-            'produkData',
-            'tanggalHariIni',
-            'transaksiTerbaru',
-            'stokMenipis'
-        ));
-    }
 }

@@ -21,7 +21,7 @@
         </li>
     @elseif (Auth::user()->role === 'kasir')
         <li class="nav-item active">
-            <a class="nav-link" href="{{ route('kasir.index') }}">
+            <a class="nav-link" href="{{ route('penjualan.create') }}">
                 <i class="fas fa-fw fa-tachometer-alt"></i>
                 <span>Dashboard</span>
             </a>
@@ -76,7 +76,8 @@
                 <i class="fas fa-fw fa-shopping-cart"></i>
                 <span>Pembelian</span>
             </a>
-            <div id="collapsePembelian" class="collapse" aria-labelledby="headingPembelian" data-parent="#accordionSidebar">
+            <div id="collapsePembelian" class="collapse" aria-labelledby="headingPembelian"
+                data-parent="#accordionSidebar">
                 <div class="bg-white py-2 collapse-inner rounded">
                     <a class="collapse-item" href="{{ route('supplier.index') }}">Supplier</a>
                     <a class="collapse-item" href="{{ route('pembelian.index') }}">Pembelian</a>
@@ -100,6 +101,14 @@
             <a class="nav-link" href="{{ route('penjualan.index') }}">
                 <i class="fas fa-fw fa-cash-register"></i>
                 <span>Transaksi Penjualan</span>
+            </a>
+        </li>
+
+        <!-- Pelanggan -->
+        <li class="nav-item">
+            <a class="nav-link" href="{{ route('kasir.pelanggan.index') }}">
+                <i class="fas fa-fw fa-user-friends"></i>
+                <span>Pelanggan</span>
             </a>
         </li>
     @endif

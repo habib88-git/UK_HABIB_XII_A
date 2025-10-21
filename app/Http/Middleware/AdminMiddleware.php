@@ -15,7 +15,7 @@ class AdminMiddleware
         }
 
         if (Auth::user()->role !== 'admin') {
-            return redirect('/kasirdashboard')->with('error', 'Akses ditolak, hanya admin yang bisa mengakses halaman ini.');
+            return redirect('/penjualan/create')->with('error', 'Akses ditolak, hanya admin yang bisa mengakses halaman ini.');
         }
 
         return $next($request);
