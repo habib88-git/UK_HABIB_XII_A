@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use App\Models\Penjualans;
+use App\Models\Pelanggans;
 use Barryvdh\DomPDF\Facade\Pdf; // pastikan barryvdh/laravel-dompdf sudah terinstall
 
 class LaporanController extends Controller
@@ -13,17 +14,25 @@ class LaporanController extends Controller
      */
     public function index(Request $request)
     {
-        $query = Penjualans::with(['pelanggan', 'user', 'pembayaran', 'detailPenjualans.produk'])
-            ->latest();
+        $query = Penjualans::with(['pelanggan', 'pembayaran', 'user']);
 
-        // filter tanggal
-        if ($request->has('start_date') && $request->has('end_date')) {
-            $query->whereBetween('tanggal_penjualan', [$request->start_date, $request->end_date]);
-        }
+    // Filter tanggal
+    if ($request->start_date) {
+        $query->whereDate('tanggal_penjualan', '>=', $request->start_date);
+    }
+    if ($request->end_date) {
+        $query->whereDate('tanggal_penjualan', '<=', $request->end_date);
+    }
+    
+    // Filter pelanggan
+    if ($request->pelanggan_id) {
+        $query->where('pelanggan_id', $request->pelanggan_id);
+    }
 
-        $penjualans = $query->get();
+    $penjualans = $query->orderBy('tanggal_penjualan', 'desc')->get();
+    $pelanggans = Pelanggans::orderBy('nama_pelanggan')->get();
 
-        return view('laporan.index', compact('penjualans'));
+    return view('laporan.index', compact('penjualans', 'pelanggans'));
     }
 
     /**

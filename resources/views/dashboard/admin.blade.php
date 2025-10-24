@@ -234,6 +234,110 @@
         </div>
     </div>
 
+    <!-- 🆕 SECTION BARU: Aktivitas Kasir Hari Ini -->
+    <div class="row">
+        <div class="col-12 mb-4">
+            <div class="card shadow border-0">
+                <div class="card-header bg-gradient-dark text-white py-3">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h6 class="m-0 font-weight-bold">
+                            <i class="fas fa-clock me-2"></i> Aktivitas Kasir Hari Ini ({{ \Carbon\Carbon::parse($today)->format('d M Y') }})
+                        </h6>
+                        <div class="d-flex align-items-center">
+                            <span class="badge bg-light text-dark me-2">
+                                <i class="fas fa-receipt me-1"></i> {{ $totalTransaksiHariIni }} Transaksi
+                            </span>
+                            <span class="badge bg-light text-success">
+                                <i class="fas fa-money-bill-wave me-1"></i> Rp {{ number_format($totalPendapatanHariIni, 0, ',', '.') }}
+                            </span>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-body p-0">
+                    @if($aktivitasKasirHariIni->isEmpty())
+                        <div class="text-center py-5">
+                            <i class="fas fa-moon fa-3x text-muted mb-3"></i>
+                            <h5 class="text-muted">Belum ada transaksi hari ini</h5>
+                            <p class="text-muted mb-0">Aktivitas kasir akan muncul setelah ada transaksi</p>
+                        </div>
+                    @else
+                        <div class="table-responsive">
+                            <table class="table table-hover align-middle mb-0">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th class="ps-3" style="width: 25%">Kasir</th>
+                                        <th class="text-center" style="width: 12%">Transaksi</th>
+                                        <th class="text-end" style="width: 18%">Total Pendapatan</th>
+                                        <th class="text-end" style="width: 15%">Rata-rata</th>
+                                        <th class="text-center" style="width: 15%">Pertama</th>
+                                        <th class="text-center" style="width: 15%">Terakhir</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach($aktivitasKasirHariIni as $index => $kasir)
+                                        <tr>
+                                            <td class="ps-3">
+                                                <div class="d-flex align-items-center">
+                                                    <div class="rounded-circle bg-primary text-white d-flex align-items-center justify-content-center me-2" 
+                                                         style="width: 35px; height: 35px; font-weight: bold;">
+                                                        {{ strtoupper(substr($kasir->name, 0, 1)) }}
+                                                    </div>
+                                                    <div>
+                                                        <strong class="d-block">{{ $kasir->name }}</strong>
+                                                        <small class="text-muted">{{ $kasir->email }}</small>
+                                                    </div>
+                                                </div>
+                                            </td>
+                                            <td class="text-center">
+                                                <span class="badge bg-primary fs-6">
+                                                    {{ $kasir->total_transaksi_hari_ini }}x
+                                                </span>
+                                            </td>
+                                            <td class="text-end">
+                                                <strong class="text-success">
+                                                    Rp {{ number_format($kasir->total_pendapatan_hari_ini, 0, ',', '.') }}
+                                                </strong>
+                                            </td>
+                                            <td class="text-end text-muted">
+                                                Rp {{ number_format($kasir->rata_rata_transaksi, 0, ',', '.') }}
+                                            </td>
+                                            <td class="text-center">
+                                                <small class="text-muted">
+                                                    <i class="fas fa-clock me-1"></i>
+                                                    {{ \Carbon\Carbon::parse($kasir->transaksi_pertama)->format('H:i') }}
+                                                </small>
+                                            </td>
+                                            <td class="text-center">
+                                                <small class="text-muted">
+                                                    <i class="fas fa-clock me-1"></i>
+                                                    {{ \Carbon\Carbon::parse($kasir->transaksi_terakhir)->format('H:i') }}
+                                                </small>
+                                            </td>
+                                        </tr>
+                                    @endforeach
+                                </tbody>
+                                <tfoot class="table-light">
+                                    <tr class="fw-bold">
+                                        <td class="ps-3">
+                                            <i class="fas fa-calculator me-2 text-primary"></i> TOTAL KESELURUHAN
+                                        </td>
+                                        <td class="text-center">
+                                            <span class="badge bg-dark fs-6">{{ $totalTransaksiHariIni }}x</span>
+                                        </td>
+                                        <td class="text-end text-success">
+                                            Rp {{ number_format($totalPendapatanHariIni, 0, ',', '.') }}
+                                        </td>
+                                        <td colspan="3"></td>
+                                    </tr>
+                                </tfoot>
+                            </table>
+                        </div>
+                    @endif
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Row Grafik Utama -->
     <div class="row">
         <div class="col-12 mb-4">
@@ -579,6 +683,10 @@
 
         .bg-gradient-secondary {
             background: linear-gradient(135deg, #858796 0%, #60616f 100%) !important;
+        }
+
+        .bg-gradient-dark {
+            background: linear-gradient(135deg, #5a5c69 0%, #3a3b45 100%) !important;
         }
 
         .border-left-primary {

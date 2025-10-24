@@ -28,7 +28,19 @@
                            value="{{ request('end_date') }}"
                            class="form-control">
                 </div>
-                <div class="col-md-6 d-flex align-items-end justify-content-start gap-2">
+                <div class="col-md-3">
+                    <label for="pelanggan_id" class="form-label fw-semibold">Pelanggan</label>
+                    <select name="pelanggan_id" id="pelanggan_id" class="form-control">
+                        <option value="">Semua Pelanggan</option>
+                        @foreach($pelanggans as $pelanggan)
+                            <option value="{{ $pelanggan->pelanggan_id }}" 
+                                {{ request('pelanggan_id') == $pelanggan->pelanggan_id ? 'selected' : '' }}>
+                                {{ $pelanggan->nama_pelanggan }}
+                            </option>
+                        @endforeach
+                    </select>
+                </div>
+                <div class="col-md-3 d-flex align-items-end justify-content-start gap-2">
                     {{-- Tombol Filter --}}
                     <button type="submit" class="btn btn-outline-primary" data-toggle="tooltip" title="Filter Data">
                         <i class="fas fa-filter"></i>
