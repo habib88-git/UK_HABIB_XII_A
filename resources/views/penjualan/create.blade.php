@@ -58,12 +58,16 @@
                                 </label>
                                 <div class="nice-box pelanggan-box">
                                     <select name="pelanggan_id" id="pelanggan_id" class="form-select nice-select">
-                                        <option value="">-- Umum --</option>
+                                        <option value="">-- Umum (Tanpa Diskon) --</option>
                                         @foreach ($pelanggans as $p)
                                             <option value="{{ $p->pelanggan_id }}">{{ $p->nama_pelanggan }}</option>
                                         @endforeach
                                     </select>
                                 </div>
+                                <small class="text-muted">
+                                    <i class="bi bi-info-circle me-1"></i> 
+                                    <span id="diskonInfo">Pilih pelanggan untuk mendapatkan diskon</span>
+                                </small>
                             </div>
 
                             {{-- Pilih Produk --}}
@@ -133,7 +137,7 @@
                                     <span class="text-muted">Subtotal</span>
                                     <span id="subtotalHarga" class="fw-semibold">Rp 0</span>
                                 </div>
-                                <div class="d-flex justify-content-between mb-2">
+                                <div class="d-flex justify-content-between mb-2" id="diskonSection" style="display: none !important;">
                                     <span class="text-muted">Diskon (<span id="persenDiskon">0%</span>)</span>
                                     <span id="nominalDiskon" class="fw-semibold text-danger">Rp 0</span>
                                 </div>
@@ -142,7 +146,7 @@
                                     <span class="fw-bold">Total</span>
                                     <span id="totalHarga" class="fw-bold text-success fs-5">Rp 0</span>
                                 </div>
-                                <small class="text-muted d-block mt-2">
+                                <small class="text-muted d-block mt-2" id="diskonNote" style="display: none;">
                                     <i class="bi bi-tag-fill me-1"></i> Diskon Rp 5.000 per Rp 100.000
                                 </small>
                             </div>
@@ -227,7 +231,6 @@
             display: none;
         }
 
-        /* 🔹 Kotak cantik untuk semua elemen form */
         .nice-box {
             background-color: #fff;
             border: 1px solid #dee2e6;
@@ -248,7 +251,6 @@
             box-shadow: 0 0 0 3px rgba(13, 110, 253, 0.15);
         }
 
-        /* Select box styling */
         .nice-select {
             background-color: transparent !important;
             box-shadow: none !important;
@@ -263,7 +265,6 @@
             outline: none !important;
         }
 
-        /* Input box styling */
         .nice-input {
             background-color: transparent !important;
             box-shadow: none !important;
@@ -277,7 +278,6 @@
             outline: none !important;
         }
 
-        /* Khusus untuk setiap jenis box */
         .pelanggan-box {
             margin-bottom: 16px;
         }
@@ -294,21 +294,18 @@
             margin-bottom: 8px;
         }
 
-        /* Tombol tambah produk */
         #addItem {
             width: 100%;
             padding: 10px;
             font-weight: 600;
         }
 
-        /* Label styling */
         .form-label {
             margin-bottom: 8px;
             font-size: 14px;
             color: #495057;
         }
 
-        /* Responsive adjustments */
         @media (max-width: 768px) {
             .nice-box {
                 padding: 6px 12px;
@@ -321,7 +318,6 @@
             }
         }
 
-        /* Animasi untuk tabel */
         .table tbody tr {
             transition: all 0.2s ease;
         }
@@ -331,7 +327,6 @@
             transform: translateY(-1px);
         }
 
-        /* Penyesuaian tinggi konsisten untuk semua box */
         .pelanggan-box,
         .produk-box,
         .metode-box,
@@ -341,12 +336,16 @@
             align-items: center;
         }
 
-        /* Pastikan select dan input memenuhi container */
         .pelanggan-box .nice-select,
         .produk-box .nice-select,
         .metode-box .nice-select,
         .input-box .nice-input {
             flex: 1;
+        }
+
+        /* Highlight diskon info */
+        #diskonInfo {
+            font-weight: 500;
         }
     </style>
 
@@ -354,6 +353,7 @@
     let produkList = document.getElementById('produkList');
     let addItem = document.getElementById('addItem');
     let produkSelect = document.getElementById('produk');
+    let pelangganSelect = document.getElementById('pelanggan_id');
     let subtotalHargaSpan = document.getElementById('subtotalHarga');
     let persenDiskonSpan = document.getElementById('persenDiskon');
     let nominalDiskonSpan = document.getElementById('nominalDiskon');
@@ -361,6 +361,37 @@
     let jumlahBayarInput = document.getElementById('jumlah_bayar');
     let kembalianInput = document.getElementById('kembalian');
     let emptyState = document.getElementById('emptyState');
+    let diskonSection = document.getElementById('diskonSection');
+    let diskonNote = document.getElementById('diskonNote');
+    let diskonInfo = document.getElementById('diskonInfo');
+
+    // ========================================
+    // 🔹 CEK STATUS PELANGGAN
+    // ========================================
+    function isPelangganTerdaftar() {
+        return pelangganSelect.value !== '';
+    }
+
+    // ========================================
+    // 🔹 UPDATE INFO DISKON
+    // ========================================
+    function updateDiskonInfo() {
+        if (isPelangganTerdaftar()) {
+            diskonInfo.innerHTML = '<span class="text-success fw-semibold">✓ Pelanggan mendapat diskon</span>';
+            diskonSection.style.display = 'flex !important';
+            diskonNote.style.display = 'block';
+        } else {
+            diskonInfo.innerHTML = 'Pilih pelanggan untuk mendapatkan diskon';
+            diskonSection.style.display = 'none !important';
+            diskonNote.style.display = 'none';
+        }
+    }
+
+    // Event listener untuk perubahan pelanggan
+    pelangganSelect.addEventListener('change', function() {
+        updateDiskonInfo();
+        hitungTotal();
+    });
 
     // ========================================
     // 🔹 FUNGSI HELPER
@@ -380,14 +411,12 @@
         let totalSetelahDiskon = parseInt(totalHargaSpan.innerText.replace(/\D/g, '')) || 0;
         let jumlahBayar = parseInt(jumlahBayarInput.value) || 0;
 
-        // Validasi produk kosong
         if (produkList.children.length === 0) {
             e.preventDefault();
             alert('⚠️ Belum ada produk yang dipilih!');
             return;
         }
 
-        // Validasi jumlah bayar kurang
         if (jumlahBayar < totalSetelahDiskon) {
             e.preventDefault();
             let kurang = totalSetelahDiskon - jumlahBayar;
@@ -415,7 +444,6 @@
         let foto = option.getAttribute('data-foto');
         let stok = parseInt(option.getAttribute('data-stok'));
 
-        // Cek apakah produk sudah ada di daftar
         let existingRow = null;
         produkList.querySelectorAll('tr').forEach(row => {
             let existingProdukId = row.querySelector('input[name="produk_id[]"]').value;
@@ -425,7 +453,6 @@
         });
 
         if (existingRow) {
-            // Produk sudah ada, tambah jumlahnya
             let jumlahInput = existingRow.querySelector('.jumlah');
             let newJumlah = parseInt(jumlahInput.value) + 1;
 
@@ -438,7 +465,6 @@
             let subtotal = harga * newJumlah;
             existingRow.querySelector('.subtotal').innerText = formatRupiah(subtotal);
         } else {
-            // Produk baru, tambah row baru
             if (stok < 1) {
                 alert('⚠️ Stok produk habis!');
                 return;
@@ -497,7 +523,6 @@
             let harga = parseInt(hargaText.replace(/\D/g, '')) || 0;
             let jumlah = parseInt(e.target.value) || 0;
 
-            // Cek stok maksimal
             let produkId = row.querySelector('input[name="produk_id[]"]').value;
             let option = Array.from(produkSelect.options).find(opt => opt.value === produkId);
             
@@ -519,20 +544,34 @@
     });
 
     // ========================================
-    // 🔹 HITUNG TOTAL & DISKON
+    // 🔹 HITUNG TOTAL & DISKON (HANYA PELANGGAN)
     // ========================================
     function hitungTotal() {
         let subtotal = 0;
         
-        // Hitung subtotal semua produk
         produkList.querySelectorAll('tr').forEach(row => {
             subtotal += parseInt(row.querySelector('.subtotal').innerText.replace(/\D/g, '')) || 0;
         });
 
-        // Hitung diskon (Rp 5.000 per Rp 100.000)
-        let kelipatan100rb = Math.floor(subtotal / 100000);
-        let nominalDiskon = kelipatan100rb * 5000;
-        nominalDiskon = Math.min(nominalDiskon, subtotal);
+        // ========================================
+        // 💡 DISKON HANYA UNTUK PELANGGAN TERDAFTAR
+        // ========================================
+        let nominalDiskon = 0;
+        
+        if (isPelangganTerdaftar()) {
+            // Hitung diskon (Rp 5.000 per Rp 100.000)
+            let kelipatan100rb = Math.floor(subtotal / 100000);
+            nominalDiskon = kelipatan100rb * 5000;
+            nominalDiskon = Math.min(nominalDiskon, subtotal);
+            
+            // Tampilkan section diskon
+            diskonSection.style.display = 'flex !important';
+            diskonNote.style.display = 'block';
+        } else {
+            // Sembunyikan section diskon untuk umum
+            diskonSection.style.display = 'none !important';
+            diskonNote.style.display = 'none';
+        }
         
         // Hitung persentase diskon
         let persenDiskon = subtotal > 0 ? ((nominalDiskon / subtotal) * 100).toFixed(1) : 0;
@@ -558,12 +597,10 @@
         let kembali = bayar - totalSetelahDiskon;
 
         if (kembali < 0) {
-            // Jika kurang bayar, tampilkan peringatan
             kembalianInput.value = 'Kurang: ' + formatRupiah(Math.abs(kembali));
             kembalianInput.classList.add('text-danger', 'fw-bold');
             kembalianInput.classList.remove('text-primary');
         } else {
-            // Jika cukup/lebih, tampilkan kembalian
             kembalianInput.value = formatRupiah(kembali);
             kembalianInput.classList.add('text-primary', 'fw-bold');
             kembalianInput.classList.remove('text-danger');
@@ -581,6 +618,7 @@
     // ========================================
     // 🔹 INISIALISASI AWAL
     // ========================================
+    updateDiskonInfo();
     toggleEmptyState();
     hitungTotal();
 </script>

@@ -467,7 +467,7 @@
                         <table class="table table-hover align-middle mb-0">
                             <thead class="table-light sticky-top">
                                 <tr>
-                                    <th class="ps-3" style="width:10%">#</th>
+                                    <th class="ps-3" style="width:10%">No</th>
                                     <th style="width:60%">Produk</th>
                                     <th class="text-end pe-3" style="width:30%">Total Profit</th>
                                 </tr>

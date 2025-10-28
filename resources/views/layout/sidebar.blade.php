@@ -19,13 +19,6 @@
                 <span>Dashboard</span>
             </a>
         </li>
-    @elseif (Auth::user()->role === 'kasir')
-        <li class="nav-item active">
-            <a class="nav-link" href="{{ route('penjualan.create') }}">
-                <i class="fas fa-fw fa-tachometer-alt"></i>
-                <span>Dashboard</span>
-            </a>
-        </li>
     @endif
 
     <!-- Divider -->
@@ -106,7 +99,7 @@
 
         <!-- Pelanggan -->
         <li class="nav-item">
-            <a class="nav-link" href="{{ route('kasir.pelanggan.index') }}">
+            <a class="nav-link" href="{{ route('pelanggan.index') }}">
                 <i class="fas fa-fw fa-user-friends"></i>
                 <span>Pelanggan</span>
             </a>

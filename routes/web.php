@@ -54,18 +54,21 @@ Route::get('/user/{id}/edit', [UserController::class, 'edit'])->name('users.edit
 Route::put('/user/{id}', [UserController::class, 'update'])->name('users.update')->middleware('admin');
 Route::delete('/user/{id}', [UserController::class, 'destroy'])->name('users.destroy')->middleware('admin');
 
-// Routes Pelanggan (Admin)
-Route::get('/pelanggan', [PelangganController::class, 'index'])->name('pelanggan.index')->middleware('admin');
-Route::get('/pelanggan/create', [PelangganController::class, 'create'])->name('pelanggan.create')->middleware('admin');
-Route::post('/pelanggan', [PelangganController::class, 'store'])->name('pelanggan.store')->middleware('admin');
-Route::get('/pelanggan/{id}/edit', [PelangganController::class, 'edit'])->name('pelanggan.edit')->middleware('admin');
-Route::put('/pelanggan/{id}', [PelangganController::class, 'update'])->name('pelanggan.update')->middleware('admin');
-Route::delete('/pelanggan/{id}', [PelangganController::class, 'destroy'])->name('pelanggan.destroy')->middleware('admin');
+// Admin - semua fungsi pelanggan
+Route::middleware('admin')->group(function () {
+    Route::get('/pelanggan', [PelangganController::class, 'index'])->name('pelanggan.index');
+    Route::get('/pelanggan/create', [PelangganController::class, 'create'])->name('pelanggan.create');
+    Route::post('/pelanggan', [PelangganController::class, 'store'])->name('pelanggan.store');
+    Route::get('/pelanggan/{id}/edit', [PelangganController::class, 'edit'])->name('pelanggan.edit');
+    Route::put('/pelanggan/{id}', [PelangganController::class, 'update'])->name('pelanggan.update');
+    Route::delete('/pelanggan/{id}', [PelangganController::class, 'destroy'])->name('pelanggan.destroy');
+});
 
+// Kasir - hanya index & create & store
 Route::prefix('kasir')->middleware('kasir')->group(function () {
-    Route::get('/pelanggan', [PelangganController::class, 'index'])->name('kasir.pelanggan.index');
-    Route::get('/pelanggan/create', [PelangganController::class, 'create'])->name('kasir.pelanggan.create');
-    Route::post('/pelanggan', [PelangganController::class, 'store'])->name('kasir.pelanggan.store');
+    Route::get('/pelanggan', [PelangganController::class, 'index'])->name('pelanggan.index');
+    Route::get('/pelanggan/create', [PelangganController::class, 'create'])->name('pelanggan.create');
+    Route::post('/pelanggan', [PelangganController::class, 'store'])->name('pelanggan.store');
 });
 
 // Routes Kategori
