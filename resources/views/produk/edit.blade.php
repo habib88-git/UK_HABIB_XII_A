@@ -28,7 +28,8 @@
         {{-- Form Edit Produk --}}
         <div class="card shadow-sm">
             <div class="card-body">
-                <form action="{{ route('produk.update', $produk->produk_id) }}" method="POST" enctype="multipart/form-data">
+                <form action="{{ route('produk.update', $produk->produk_id) }}" method="POST"
+                    enctype="multipart/form-data">
                     @csrf
                     @method('PUT')
 
@@ -85,11 +86,10 @@
 
                         <div class="col-md-6 mb-3">
                             <label for="photo" class="form-label">Foto Produk</label>
-                            @if($produk->photo)
+                            @if ($produk->photo)
                                 <div class="mb-2">
-                                    <img src="{{ asset('storage/' . $produk->photo) }}"
-                                        alt="{{ $produk->nama_produk }}" width="120"
-                                        style="object-fit: cover; border-radius: 8px;">
+                                    <img src="{{ asset('storage/' . $produk->photo) }}" alt="{{ $produk->nama_produk }}"
+                                        width="120" style="object-fit: cover; border-radius: 8px;">
                                 </div>
                             @endif
                             <input type="file" name="photo" id="photo" class="form-control"

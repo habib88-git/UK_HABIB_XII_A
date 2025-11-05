@@ -130,7 +130,8 @@
                                     <span class="text-muted">Subtotal</span>
                                     <span id="subtotalHarga" class="fw-semibold">Rp 0</span>
                                 </div>
-                                <div class="d-flex justify-content-between mb-2" id="diskonSection" style="display: none !important;">
+                                <div class="d-flex justify-content-between mb-2" id="diskonSection"
+                                    style="display: none !important;">
                                     <span class="text-muted">Diskon (<span id="persenDiskon">0%</span>)</span>
                                     <span id="nominalDiskon" class="fw-semibold text-danger">Rp 0</span>
                                 </div>
@@ -345,11 +346,13 @@
             outline: none !important;
         }
 
-        .pelanggan-box, .produk-box {
+        .pelanggan-box,
+        .produk-box {
             margin-bottom: 16px;
         }
 
-        .metode-box, .input-box {
+        .metode-box,
+        .input-box {
             margin-bottom: 8px;
         }
 
@@ -374,7 +377,10 @@
             transform: translateY(-1px);
         }
 
-        .pelanggan-box, .produk-box, .metode-box, .input-box {
+        .pelanggan-box,
+        .produk-box,
+        .metode-box,
+        .input-box {
             min-height: 58px;
             display: flex;
             align-items: center;
@@ -438,7 +444,8 @@
                 padding: 6px 12px;
             }
 
-            .nice-select, .nice-input {
+            .nice-select,
+            .nice-input {
                 height: 38px;
                 font-size: 14px;
             }
@@ -451,283 +458,284 @@
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js"></script>
     <script>
-    let produkList = document.getElementById('produkList');
-    let addItem = document.getElementById('addItem');
-    let produkSelect = document.getElementById('produk');
-    let pelangganSelect = document.getElementById('pelanggan_id');
-    let metodeSelect = document.getElementById('metode');
-    let subtotalHargaSpan = document.getElementById('subtotalHarga');
-    let persenDiskonSpan = document.getElementById('persenDiskon');
-    let nominalDiskonSpan = document.getElementById('nominalDiskon');
-    let totalHargaSpan = document.getElementById('totalHarga');
-    let jumlahBayarInput = document.getElementById('jumlah_bayar');
-    let kembalianInput = document.getElementById('kembalian');
-    let emptyState = document.getElementById('emptyState');
-    let diskonSection = document.getElementById('diskonSection');
-    let diskonNote = document.getElementById('diskonNote');
-    let diskonInfo = document.getElementById('diskonInfo');
-    let cashSection = document.getElementById('cashSection');
-    let kembalianSection = document.getElementById('kembalianSection');
-    let qrisSection = document.getElementById('qrisSection');
-    let qrisBarcodeContainer = document.getElementById('qrisBarcodeContainer');
-    let qrisAmountDisplay = document.getElementById('qrisAmountDisplay');
+        let produkList = document.getElementById('produkList');
+        let addItem = document.getElementById('addItem');
+        let produkSelect = document.getElementById('produk');
+        let pelangganSelect = document.getElementById('pelanggan_id');
+        let metodeSelect = document.getElementById('metode');
+        let subtotalHargaSpan = document.getElementById('subtotalHarga');
+        let persenDiskonSpan = document.getElementById('persenDiskon');
+        let nominalDiskonSpan = document.getElementById('nominalDiskon');
+        let totalHargaSpan = document.getElementById('totalHarga');
+        let jumlahBayarInput = document.getElementById('jumlah_bayar');
+        let kembalianInput = document.getElementById('kembalian');
+        let emptyState = document.getElementById('emptyState');
+        let diskonSection = document.getElementById('diskonSection');
+        let diskonNote = document.getElementById('diskonNote');
+        let diskonInfo = document.getElementById('diskonInfo');
+        let cashSection = document.getElementById('cashSection');
+        let kembalianSection = document.getElementById('kembalianSection');
+        let qrisSection = document.getElementById('qrisSection');
+        let qrisBarcodeContainer = document.getElementById('qrisBarcodeContainer');
+        let qrisAmountDisplay = document.getElementById('qrisAmountDisplay');
 
-    // Konstanta QRIS
-    const STATIC_QRIS = "00020101021126670016COM.NOBUBANK.WWW01189360050300000879140214844519767362640303UMI51440014ID.CO.QRIS.WWW0215ID20243345184510303UMI5204541153033605802ID5920YANTO SHOP OK18846346005DEPOK61051641162070703A0163046879";
+        // Konstanta QRIS
+        const STATIC_QRIS =
+            "00020101021126670016COM.NOBUBANK.WWW01189360050300000879140214844519767362640303UMI51440014ID.CO.QRIS.WWW0215ID20243345184510303UMI5204541153033605802ID5920YANTO SHOP OK18846346005DEPOK61051641162070703A0163046879";
 
-    // Fungsi untuk generate QR Code
-    function generateQRCode(content) {
-        const qr = qrcode(0, 'M');
-        qr.addData(content);
-        qr.make();
-        return qr.createDataURL(8);
-    }
+        // Fungsi untuk generate QR Code
+        function generateQRCode(content) {
+            const qr = qrcode(0, 'M');
+            qr.addData(content);
+            qr.make();
+            return qr.createDataURL(8);
+        }
 
-    // Fungsi untuk generate string QRIS
-    function generateQRIS(amount) {
-        if (isNaN(amount) || amount <= 0) return '';
+        // Fungsi untuk generate string QRIS
+        function generateQRIS(amount) {
+            if (isNaN(amount) || amount <= 0) return '';
 
-        let qris = STATIC_QRIS.slice(0, -4);
-        let step1 = qris.replace("010211", "010212");
-        let step2 = step1.split("5802ID");
-        let uang = "54" + amount.toString().length.toString().padStart(2, '0') + amount.toString();
-        uang += "5802ID";
-        const fix = step2[0].trim() + uang + step2[1].trim();
-        const finalQR = fix + ConvertCRC16(fix);
+            let qris = STATIC_QRIS.slice(0, -4);
+            let step1 = qris.replace("010211", "010212");
+            let step2 = step1.split("5802ID");
+            let uang = "54" + amount.toString().length.toString().padStart(2, '0') + amount.toString();
+            uang += "5802ID";
+            const fix = step2[0].trim() + uang + step2[1].trim();
+            const finalQR = fix + ConvertCRC16(fix);
 
-        return finalQR;
-    }
+            return finalQR;
+        }
 
-    // Fungsi untuk menghitung CRC16
-    function ConvertCRC16(str) {
-        let crc = 0xFFFF;
-        for (let c = 0; c < str.length; c++) {
-            crc ^= str.charCodeAt(c) << 8;
-            for (let i = 0; i < 8; i++) {
-                crc = (crc & 0x8000) ? (crc << 1) ^ 0x1021 : crc << 1;
+        // Fungsi untuk menghitung CRC16
+        function ConvertCRC16(str) {
+            let crc = 0xFFFF;
+            for (let c = 0; c < str.length; c++) {
+                crc ^= str.charCodeAt(c) << 8;
+                for (let i = 0; i < 8; i++) {
+                    crc = (crc & 0x8000) ? (crc << 1) ^ 0x1021 : crc << 1;
+                }
+            }
+            let hex = (crc & 0xFFFF).toString(16).toUpperCase();
+            return hex.length === 3 ? '0' + hex : hex.padStart(4, '0');
+        }
+
+        // Toggle tampilan input berdasarkan metode pembayaran
+        function togglePaymentInputs() {
+            const metode = metodeSelect.value;
+
+            if (metode === 'cash') {
+                cashSection.style.display = 'block';
+                kembalianSection.style.display = 'block';
+                qrisSection.style.display = 'none';
+                jumlahBayarInput.required = true;
+            } else if (metode === 'qris') {
+                cashSection.style.display = 'none';
+                kembalianSection.style.display = 'none';
+                qrisSection.style.display = 'block';
+                jumlahBayarInput.required = false;
+
+                // Set jumlah bayar sama dengan total untuk QRIS
+                const totalSetelahDiskon = parseInt(totalHargaSpan.innerText.replace(/\D/g, '')) || 0;
+                jumlahBayarInput.value = totalSetelahDiskon;
+
+                // Generate QR Code untuk QRIS
+                generateQRISBarcode(totalSetelahDiskon);
+            } else {
+                cashSection.style.display = 'block';
+                kembalianSection.style.display = 'block';
+                qrisSection.style.display = 'none';
             }
         }
-        let hex = (crc & 0xFFFF).toString(16).toUpperCase();
-        return hex.length === 3 ? '0' + hex : hex.padStart(4, '0');
-    }
 
-    // Toggle tampilan input berdasarkan metode pembayaran
-    function togglePaymentInputs() {
-        const metode = metodeSelect.value;
+        // Fungsi untuk generate barcode QRIS
+        function generateQRISBarcode(amount) {
+            if (amount <= 0) {
+                qrisBarcodeContainer.innerHTML = '<p class="text-muted">Total harus lebih dari 0</p>';
+                qrisAmountDisplay.textContent = 'Rp 0';
+                return;
+            }
 
-        if (metode === 'cash') {
-            cashSection.style.display = 'block';
-            kembalianSection.style.display = 'block';
-            qrisSection.style.display = 'none';
-            jumlahBayarInput.required = true;
-        } else if (metode === 'qris') {
-            cashSection.style.display = 'none';
-            kembalianSection.style.display = 'none';
-            qrisSection.style.display = 'block';
-            jumlahBayarInput.required = false;
+            const qrContent = generateQRIS(amount);
+            const qrImageUrl = generateQRCode(qrContent);
 
-            // Set jumlah bayar sama dengan total untuk QRIS
-            const totalSetelahDiskon = parseInt(totalHargaSpan.innerText.replace(/\D/g, '')) || 0;
-            jumlahBayarInput.value = totalSetelahDiskon;
-
-            // Generate QR Code untuk QRIS
-            generateQRISBarcode(totalSetelahDiskon);
-        } else {
-            cashSection.style.display = 'block';
-            kembalianSection.style.display = 'block';
-            qrisSection.style.display = 'none';
-        }
-    }
-
-    // Fungsi untuk generate barcode QRIS
-    function generateQRISBarcode(amount) {
-        if (amount <= 0) {
-            qrisBarcodeContainer.innerHTML = '<p class="text-muted">Total harus lebih dari 0</p>';
-            qrisAmountDisplay.textContent = 'Rp 0';
-            return;
-        }
-
-        const qrContent = generateQRIS(amount);
-        const qrImageUrl = generateQRCode(qrContent);
-
-        qrisBarcodeContainer.innerHTML = `
+            qrisBarcodeContainer.innerHTML = `
             <img src="${qrImageUrl}" alt="QR Code Pembayaran" class="img-fluid">
         `;
-        qrisAmountDisplay.textContent = formatRupiah(amount);
-    }
+            qrisAmountDisplay.textContent = formatRupiah(amount);
+        }
 
-    // Event listener untuk metode pembayaran
-    metodeSelect.addEventListener('change', togglePaymentInputs);
+        // Event listener untuk metode pembayaran
+        metodeSelect.addEventListener('change', togglePaymentInputs);
 
-    // 🔥 CEK APAKAH ADA PENJUALAN BARU - VERSI FIXED
-    @if(session('success') && session('penjualan_id'))
-        document.addEventListener('DOMContentLoaded', function() {
-            let penjualanId = {{ session('penjualan_id') }};
-            let metodePembayaran = '{{ session("metode_pembayaran", "cash") }}';
-            let totalBayar = {{ session("total_bayar", 0) }};
+        // 🔥 CEK APAKAH ADA PENJUALAN BARU - VERSI FIXED
+        @if (session('success') && session('penjualan_id'))
+            document.addEventListener('DOMContentLoaded', function() {
+                let penjualanId = {{ session('penjualan_id') }};
+                let metodePembayaran = '{{ session('metode_pembayaran', 'cash') }}';
+                let totalBayar = {{ session('total_bayar', 0) }};
 
-            // Jika metode QRIS, tampilkan modal QRIS
-            if (metodePembayaran === 'qris') {
-                showQRISModal(totalBayar, penjualanId);
-            } else {
-                // Jika cash, tampilkan modal sukses biasa
-                showSuccessModal(penjualanId);
-            }
-        });
-    @endif
+                // Jika metode QRIS, tampilkan modal QRIS
+                if (metodePembayaran === 'qris') {
+                    showQRISModal(totalBayar, penjualanId);
+                } else {
+                    // Jika cash, tampilkan modal sukses biasa
+                    showSuccessModal(penjualanId);
+                }
+            });
+        @endif
 
-    // Fungsi untuk menampilkan modal QRIS
-    function showQRISModal(amount, penjualanId) {
-        const qrContent = generateQRIS(amount);
-        const qrImageUrl = generateQRCode(qrContent);
+        // Fungsi untuk menampilkan modal QRIS
+        function showQRISModal(amount, penjualanId) {
+            const qrContent = generateQRIS(amount);
+            const qrImageUrl = generateQRCode(qrContent);
 
-        document.getElementById('qrisAmount').textContent = formatRupiah(amount);
-        document.getElementById('qrCodeContainer').innerHTML = `
+            document.getElementById('qrisAmount').textContent = formatRupiah(amount);
+            document.getElementById('qrCodeContainer').innerHTML = `
             <img src="${qrImageUrl}" alt="QR Code" style="max-width: 250px; height: auto;">
         `;
 
-        const qrisModal = new bootstrap.Modal(document.getElementById('qrisModal'));
-        qrisModal.show();
+            const qrisModal = new bootstrap.Modal(document.getElementById('qrisModal'));
+            qrisModal.show();
 
-        // Event listener untuk konfirmasi QRIS
-        document.getElementById('confirmQRIS').addEventListener('click', function() {
-            qrisModal.hide();
-            setTimeout(() => {
-                showSuccessModal(penjualanId);
-            }, 300);
-        });
-    }
-
-    // Fungsi untuk menampilkan modal sukses
-    function showSuccessModal(penjualanId) {
-        const successModal = new bootstrap.Modal(document.getElementById('successModal'));
-        successModal.show();
-
-        // Event listener untuk tombol Cetak Struk
-        document.getElementById('cetakStrukBtn').addEventListener('click', function() {
-            window.open('{{ route("penjualan.struk", "") }}/' + penjualanId, '_blank');
-            successModal.hide();
-            setTimeout(() => resetForm(), 300);
-        });
-
-        // Event listener untuk tombol Oke Saja
-        document.getElementById('okeSajaBtn').addEventListener('click', function() {
-            successModal.hide();
-            setTimeout(() => resetForm(), 300);
-        });
-    }
-
-    // 🔥 FUNGSI RESET FORM
-    function resetForm() {
-        pelangganSelect.value = '';
-        produkSelect.value = '';
-        metodeSelect.value = '';
-        jumlahBayarInput.value = '';
-        kembalianInput.value = '';
-        produkList.innerHTML = '';
-        updateDiskonInfo();
-        toggleEmptyState();
-        hitungTotal();
-        togglePaymentInputs();
-    }
-
-    function isPelangganTerdaftar() {
-        return pelangganSelect.value !== '';
-    }
-
-    function updateDiskonInfo() {
-        if (isPelangganTerdaftar()) {
-            diskonInfo.innerHTML = '<span class="text-success fw-semibold">✓ Pelanggan mendapat diskon</span>';
-            diskonSection.style.display = 'flex !important';
-            diskonNote.style.display = 'block';
-        } else {
-            diskonInfo.innerHTML = 'Pilih pelanggan untuk mendapatkan diskon';
-            diskonSection.style.display = 'none !important';
-            diskonNote.style.display = 'none';
-        }
-    }
-
-    pelangganSelect.addEventListener('change', function() {
-        updateDiskonInfo();
-        hitungTotal();
-    });
-
-    function formatRupiah(angka) {
-        return 'Rp ' + (angka ? angka.toLocaleString('id-ID') : '0');
-    }
-
-    function toggleEmptyState() {
-        emptyState.style.display = produkList.children.length === 0 ? 'block' : 'none';
-    }
-
-    document.querySelector('form').addEventListener('submit', function(e) {
-        let totalSetelahDiskon = parseInt(totalHargaSpan.innerText.replace(/\D/g, '')) || 0;
-        let jumlahBayar = parseInt(jumlahBayarInput.value) || 0;
-        const metode = metodeSelect.value;
-
-        if (produkList.children.length === 0) {
-            e.preventDefault();
-            alert('⚠️ Belum ada produk yang dipilih!');
-            return;
+            // Event listener untuk konfirmasi QRIS
+            document.getElementById('confirmQRIS').addEventListener('click', function() {
+                qrisModal.hide();
+                setTimeout(() => {
+                    showSuccessModal(penjualanId);
+                }, 300);
+            });
         }
 
-        if (metode === 'cash' && jumlahBayar < totalSetelahDiskon) {
-            e.preventDefault();
-            let kurang = totalSetelahDiskon - jumlahBayar;
-            alert('⚠️ Jumlah bayar kurang dari total!\nKurang: Rp ' + kurang.toLocaleString('id-ID'));
-            jumlahBayarInput.focus();
-            return;
+        // Fungsi untuk menampilkan modal sukses
+        function showSuccessModal(penjualanId) {
+            const successModal = new bootstrap.Modal(document.getElementById('successModal'));
+            successModal.show();
+
+            // Event listener untuk tombol Cetak Struk
+            document.getElementById('cetakStrukBtn').addEventListener('click', function() {
+                window.open('{{ route('penjualan.struk', '') }}/' + penjualanId, '_blank');
+                successModal.hide();
+                setTimeout(() => resetForm(), 300);
+            });
+
+            // Event listener untuk tombol Oke Saja
+            document.getElementById('okeSajaBtn').addEventListener('click', function() {
+                successModal.hide();
+                setTimeout(() => resetForm(), 300);
+            });
         }
 
-        if (metode === 'qris' && jumlahBayar !== totalSetelahDiskon) {
-            e.preventDefault();
-            alert('⚠️ Untuk pembayaran QRIS, jumlah bayar harus sama dengan total!');
-            return;
+        // 🔥 FUNGSI RESET FORM
+        function resetForm() {
+            pelangganSelect.value = '';
+            produkSelect.value = '';
+            metodeSelect.value = '';
+            jumlahBayarInput.value = '';
+            kembalianInput.value = '';
+            produkList.innerHTML = '';
+            updateDiskonInfo();
+            toggleEmptyState();
+            hitungTotal();
+            togglePaymentInputs();
         }
-    });
 
-    addItem.addEventListener('click', function() {
-        let option = produkSelect.options[produkSelect.selectedIndex];
-
-        if (!option.value) {
-            alert('⚠️ Pilih produk terlebih dahulu!');
-            return;
+        function isPelangganTerdaftar() {
+            return pelangganSelect.value !== '';
         }
 
-        let produkId = option.value;
-        let namaProduk = option.text.split('(')[0].trim();
-        let harga = parseInt(option.getAttribute('data-harga'));
-        let satuan = option.getAttribute('data-unit');
-        let foto = option.getAttribute('data-foto');
-        let stok = parseInt(option.getAttribute('data-stok'));
-
-        let existingRow = null;
-        produkList.querySelectorAll('tr').forEach(row => {
-            let existingProdukId = row.querySelector('input[name="produk_id[]"]').value;
-            if (existingProdukId == produkId) {
-                existingRow = row;
+        function updateDiskonInfo() {
+            if (isPelangganTerdaftar()) {
+                diskonInfo.innerHTML = '<span class="text-success fw-semibold">✓ Pelanggan mendapat diskon</span>';
+                diskonSection.style.display = 'flex !important';
+                diskonNote.style.display = 'block';
+            } else {
+                diskonInfo.innerHTML = 'Pilih pelanggan untuk mendapatkan diskon';
+                diskonSection.style.display = 'none !important';
+                diskonNote.style.display = 'none';
             }
+        }
+
+        pelangganSelect.addEventListener('change', function() {
+            updateDiskonInfo();
+            hitungTotal();
         });
 
-        if (existingRow) {
-            let jumlahInput = existingRow.querySelector('.jumlah');
-            let newJumlah = parseInt(jumlahInput.value) + 1;
+        function formatRupiah(angka) {
+            return 'Rp ' + (angka ? angka.toLocaleString('id-ID') : '0');
+        }
 
-            if (newJumlah > stok) {
-                alert('⚠️ Stok tidak mencukupi!\nStok tersisa: ' + stok);
+        function toggleEmptyState() {
+            emptyState.style.display = produkList.children.length === 0 ? 'block' : 'none';
+        }
+
+        document.querySelector('form').addEventListener('submit', function(e) {
+            let totalSetelahDiskon = parseInt(totalHargaSpan.innerText.replace(/\D/g, '')) || 0;
+            let jumlahBayar = parseInt(jumlahBayarInput.value) || 0;
+            const metode = metodeSelect.value;
+
+            if (produkList.children.length === 0) {
+                e.preventDefault();
+                alert('⚠️ Belum ada produk yang dipilih!');
                 return;
             }
 
-            jumlahInput.value = newJumlah;
-            let subtotal = harga * newJumlah;
-            existingRow.querySelector('.subtotal').innerText = formatRupiah(subtotal);
-        } else {
-            if (stok < 1) {
-                alert('⚠️ Stok produk habis!');
+            if (metode === 'cash' && jumlahBayar < totalSetelahDiskon) {
+                e.preventDefault();
+                let kurang = totalSetelahDiskon - jumlahBayar;
+                alert('⚠️ Jumlah bayar kurang dari total!\nKurang: Rp ' + kurang.toLocaleString('id-ID'));
+                jumlahBayarInput.focus();
                 return;
             }
 
-            let row = `
+            if (metode === 'qris' && jumlahBayar !== totalSetelahDiskon) {
+                e.preventDefault();
+                alert('⚠️ Untuk pembayaran QRIS, jumlah bayar harus sama dengan total!');
+                return;
+            }
+        });
+
+        addItem.addEventListener('click', function() {
+            let option = produkSelect.options[produkSelect.selectedIndex];
+
+            if (!option.value) {
+                alert('⚠️ Pilih produk terlebih dahulu!');
+                return;
+            }
+
+            let produkId = option.value;
+            let namaProduk = option.text.split('(')[0].trim();
+            let harga = parseInt(option.getAttribute('data-harga'));
+            let satuan = option.getAttribute('data-unit');
+            let foto = option.getAttribute('data-foto');
+            let stok = parseInt(option.getAttribute('data-stok'));
+
+            let existingRow = null;
+            produkList.querySelectorAll('tr').forEach(row => {
+                let existingProdukId = row.querySelector('input[name="produk_id[]"]').value;
+                if (existingProdukId == produkId) {
+                    existingRow = row;
+                }
+            });
+
+            if (existingRow) {
+                let jumlahInput = existingRow.querySelector('.jumlah');
+                let newJumlah = parseInt(jumlahInput.value) + 1;
+
+                if (newJumlah > stok) {
+                    alert('⚠️ Stok tidak mencukupi!\nStok tersisa: ' + stok);
+                    return;
+                }
+
+                jumlahInput.value = newJumlah;
+                let subtotal = harga * newJumlah;
+                existingRow.querySelector('.subtotal').innerText = formatRupiah(subtotal);
+            } else {
+                if (stok < 1) {
+                    alert('⚠️ Stok produk habis!');
+                    return;
+                }
+
+                let row = `
             <tr>
                 <td>
                     <div class="d-flex justify-content-center">
@@ -751,112 +759,112 @@
                     </button>
                 </td>
             </tr>`;
-            produkList.insertAdjacentHTML('beforeend', row);
-        }
-
-        toggleEmptyState();
-        hitungTotal();
-    });
-
-    produkList.addEventListener('click', function(e) {
-        if (e.target.classList.contains('removeItem') || e.target.closest('.removeItem')) {
-            let button = e.target.classList.contains('removeItem') ? e.target : e.target.closest('.removeItem');
-            button.closest('tr').remove();
-            toggleEmptyState();
-            hitungTotal();
-        }
-    });
-
-    produkList.addEventListener('input', function(e) {
-        if (e.target.classList.contains('jumlah')) {
-            let row = e.target.closest('tr');
-            let hargaText = row.querySelector('td:nth-child(4)').innerText;
-            let harga = parseInt(hargaText.replace(/\D/g, '')) || 0;
-            let jumlah = parseInt(e.target.value) || 0;
-
-            let produkId = row.querySelector('input[name="produk_id[]"]').value;
-            let option = Array.from(produkSelect.options).find(opt => opt.value === produkId);
-
-            if (option) {
-                let stok = parseInt(option.getAttribute('data-stok'));
-                if (jumlah > stok) {
-                    alert('⚠️ Stok tidak mencukupi!\nStok tersisa: ' + stok);
-                    e.target.value = stok;
-                    e.target.classList.add('is-invalid');
-                    jumlah = stok;
-                } else {
-                    e.target.classList.remove('is-invalid');
-                }
+                produkList.insertAdjacentHTML('beforeend', row);
             }
 
-            row.querySelector('.subtotal').innerText = formatRupiah(harga * jumlah);
+            toggleEmptyState();
             hitungTotal();
-        }
-    });
-
-    function hitungTotal() {
-        let subtotal = 0;
-
-        produkList.querySelectorAll('tr').forEach(row => {
-            subtotal += parseInt(row.querySelector('.subtotal').innerText.replace(/\D/g, '')) || 0;
         });
 
-        let nominalDiskon = 0;
+        produkList.addEventListener('click', function(e) {
+            if (e.target.classList.contains('removeItem') || e.target.closest('.removeItem')) {
+                let button = e.target.classList.contains('removeItem') ? e.target : e.target.closest('.removeItem');
+                button.closest('tr').remove();
+                toggleEmptyState();
+                hitungTotal();
+            }
+        });
 
-        if (isPelangganTerdaftar()) {
-            let kelipatan100rb = Math.floor(subtotal / 100000);
-            nominalDiskon = kelipatan100rb * 5000;
-            nominalDiskon = Math.min(nominalDiskon, subtotal);
+        produkList.addEventListener('input', function(e) {
+            if (e.target.classList.contains('jumlah')) {
+                let row = e.target.closest('tr');
+                let hargaText = row.querySelector('td:nth-child(4)').innerText;
+                let harga = parseInt(hargaText.replace(/\D/g, '')) || 0;
+                let jumlah = parseInt(e.target.value) || 0;
 
-            diskonSection.style.display = 'flex !important';
-            diskonNote.style.display = 'block';
-        } else {
-            diskonSection.style.display = 'none !important';
-            diskonNote.style.display = 'none';
+                let produkId = row.querySelector('input[name="produk_id[]"]').value;
+                let option = Array.from(produkSelect.options).find(opt => opt.value === produkId);
+
+                if (option) {
+                    let stok = parseInt(option.getAttribute('data-stok'));
+                    if (jumlah > stok) {
+                        alert('⚠️ Stok tidak mencukupi!\nStok tersisa: ' + stok);
+                        e.target.value = stok;
+                        e.target.classList.add('is-invalid');
+                        jumlah = stok;
+                    } else {
+                        e.target.classList.remove('is-invalid');
+                    }
+                }
+
+                row.querySelector('.subtotal').innerText = formatRupiah(harga * jumlah);
+                hitungTotal();
+            }
+        });
+
+        function hitungTotal() {
+            let subtotal = 0;
+
+            produkList.querySelectorAll('tr').forEach(row => {
+                subtotal += parseInt(row.querySelector('.subtotal').innerText.replace(/\D/g, '')) || 0;
+            });
+
+            let nominalDiskon = 0;
+
+            if (isPelangganTerdaftar()) {
+                let kelipatan100rb = Math.floor(subtotal / 100000);
+                nominalDiskon = kelipatan100rb * 5000;
+                nominalDiskon = Math.min(nominalDiskon, subtotal);
+
+                diskonSection.style.display = 'flex !important';
+                diskonNote.style.display = 'block';
+            } else {
+                diskonSection.style.display = 'none !important';
+                diskonNote.style.display = 'none';
+            }
+
+            let persenDiskon = subtotal > 0 ? ((nominalDiskon / subtotal) * 100).toFixed(1) : 0;
+
+            subtotalHargaSpan.innerText = formatRupiah(subtotal);
+            persenDiskonSpan.innerText = persenDiskon + '%';
+            nominalDiskonSpan.innerText = formatRupiah(nominalDiskon);
+
+            let totalSetelahDiskon = subtotal - nominalDiskon;
+            totalHargaSpan.innerText = formatRupiah(totalSetelahDiskon);
+
+            // Untuk QRIS, set jumlah bayar sama dengan total dan generate barcode
+            if (metodeSelect.value === 'qris') {
+                jumlahBayarInput.value = totalSetelahDiskon;
+                generateQRISBarcode(totalSetelahDiskon);
+            }
+
+            updateKembalian(totalSetelahDiskon);
         }
 
-        let persenDiskon = subtotal > 0 ? ((nominalDiskon / subtotal) * 100).toFixed(1) : 0;
+        function updateKembalian(totalSetelahDiskon) {
+            let bayar = parseInt(jumlahBayarInput.value) || 0;
+            let kembali = bayar - totalSetelahDiskon;
 
-        subtotalHargaSpan.innerText = formatRupiah(subtotal);
-        persenDiskonSpan.innerText = persenDiskon + '%';
-        nominalDiskonSpan.innerText = formatRupiah(nominalDiskon);
-
-        let totalSetelahDiskon = subtotal - nominalDiskon;
-        totalHargaSpan.innerText = formatRupiah(totalSetelahDiskon);
-
-        // Untuk QRIS, set jumlah bayar sama dengan total dan generate barcode
-        if (metodeSelect.value === 'qris') {
-            jumlahBayarInput.value = totalSetelahDiskon;
-            generateQRISBarcode(totalSetelahDiskon);
+            if (kembali < 0) {
+                kembalianInput.value = 'Kurang: ' + formatRupiah(Math.abs(kembali));
+                kembalianInput.classList.add('text-danger', 'fw-bold');
+                kembalianInput.classList.remove('text-primary');
+            } else {
+                kembalianInput.value = formatRupiah(kembali);
+                kembalianInput.classList.add('text-primary', 'fw-bold');
+                kembalianInput.classList.remove('text-danger');
+            }
         }
 
-        updateKembalian(totalSetelahDiskon);
-    }
+        jumlahBayarInput.addEventListener('input', function() {
+            let totalSetelahDiskon = parseInt(totalHargaSpan.innerText.replace(/\D/g, '')) || 0;
+            updateKembalian(totalSetelahDiskon);
+        });
 
-    function updateKembalian(totalSetelahDiskon) {
-        let bayar = parseInt(jumlahBayarInput.value) || 0;
-        let kembali = bayar - totalSetelahDiskon;
-
-        if (kembali < 0) {
-            kembalianInput.value = 'Kurang: ' + formatRupiah(Math.abs(kembali));
-            kembalianInput.classList.add('text-danger', 'fw-bold');
-            kembalianInput.classList.remove('text-primary');
-        } else {
-            kembalianInput.value = formatRupiah(kembali);
-            kembalianInput.classList.add('text-primary', 'fw-bold');
-            kembalianInput.classList.remove('text-danger');
-        }
-    }
-
-    jumlahBayarInput.addEventListener('input', function() {
-        let totalSetelahDiskon = parseInt(totalHargaSpan.innerText.replace(/\D/g, '')) || 0;
-        updateKembalian(totalSetelahDiskon);
-    });
-
-    // Inisialisasi
-    updateDiskonInfo();
-    toggleEmptyState();
-    hitungTotal();
-    togglePaymentInputs();
-</script>
+        // Inisialisasi
+        updateDiskonInfo();
+        toggleEmptyState();
+        hitungTotal();
+        togglePaymentInputs();
+    </script>
 @endsection
