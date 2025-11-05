@@ -54,21 +54,18 @@ Route::get('/user/{id}/edit', [UserController::class, 'edit'])->name('users.edit
 Route::put('/user/{id}', [UserController::class, 'update'])->name('users.update')->middleware('admin');
 Route::delete('/user/{id}', [UserController::class, 'destroy'])->name('users.destroy')->middleware('admin');
 
-// Admin - semua fungsi pelanggan
-Route::middleware('admin')->group(function () {
+// PELANGGAN - admin & kasir bisa akses
+Route::middleware(['auth'])->group(function () {
     Route::get('/pelanggan', [PelangganController::class, 'index'])->name('pelanggan.index');
     Route::get('/pelanggan/create', [PelangganController::class, 'create'])->name('pelanggan.create');
     Route::post('/pelanggan', [PelangganController::class, 'store'])->name('pelanggan.store');
-    Route::get('/pelanggan/{id}/edit', [PelangganController::class, 'edit'])->name('pelanggan.edit');
-    Route::put('/pelanggan/{id}', [PelangganController::class, 'update'])->name('pelanggan.update');
-    Route::delete('/pelanggan/{id}', [PelangganController::class, 'destroy'])->name('pelanggan.destroy');
-});
 
-// Kasir - hanya index & create & store
-Route::prefix('kasir')->middleware('kasir')->group(function () {
-    Route::get('/pelanggan', [PelangganController::class, 'index'])->name('pelanggan.index');
-    Route::get('/pelanggan/create', [PelangganController::class, 'create'])->name('pelanggan.create');
-    Route::post('/pelanggan', [PelangganController::class, 'store'])->name('pelanggan.store');
+    // route edit, update, delete hanya untuk admin
+    Route::middleware('admin')->group(function () {
+        Route::get('/pelanggan/{id}/edit', [PelangganController::class, 'edit'])->name('pelanggan.edit');
+        Route::put('/pelanggan/{id}', [PelangganController::class, 'update'])->name('pelanggan.update');
+        Route::delete('/pelanggan/{id}', [PelangganController::class, 'destroy'])->name('pelanggan.destroy');
+    });
 });
 
 // Routes Kategori
@@ -88,10 +85,19 @@ Route::put('/satuan/{id}', [SatuanController::class, 'update'])->name('satuan.up
 Route::delete('/satuan/{id}', [SatuanController::class, 'destroy'])->name('satuan.destroy')->middleware('admin');
 
 // Routes Penjualan (kasir)
-Route::get('/penjualan', [PenjualanController::class, 'index'])->name('penjualan.index')->middleware('kasir');
-Route::get('/penjualan/create', [PenjualanController::class, 'create'])->name('penjualan.create')->middleware('kasir');
-Route::post('/penjualan', [PenjualanController::class, 'store'])->name('penjualan.store')->middleware('kasir');
-Route::post('/penjualan/{id}/bayar', [PenjualanController::class, 'bayar'])->name('penjualan.bayar')->middleware('kasir');
+Route::middleware(['kasir'])->group(function () {
+    Route::get('/penjualan', [PenjualanController::class, 'index'])->name('penjualan.index');
+    Route::get('/penjualan/create', [PenjualanController::class, 'create'])->name('penjualan.create');
+    Route::post('/penjualan', [PenjualanController::class, 'store'])->name('penjualan.store');
+
+    // 🔥 ROUTE BARU UNTUK CETAK STRUK
+    Route::get('/penjualan/struk/{id}', [PenjualanController::class, 'cetakStruk'])->name('penjualan.struk');
+
+    Route::post('/penjualan/{id}/bayar', [PenjualanController::class, 'bayar'])->name('penjualan.bayar');
+});
+
+// Resource route (pastikan ini di bawah route manual di atas)
+Route::resource('penjualan', PenjualanController::class)->middleware('kasir');
 
 Route::resource('produk', ProdukController::class)->middleware('admin');
 Route::resource('penjualan', PenjualanController::class)->middleware('kasir');

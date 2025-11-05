@@ -14,8 +14,7 @@
     <link href="{{ asset('ruang-admin/vendor/fontawesome-free/css/all.min.css') }}" rel="stylesheet" type="text/css">
     <link href="{{ asset('ruang-admin/vendor/bootstrap/css/bootstrap.min.css') }}" rel="stylesheet" type="text/css">
     <link href="{{ asset('ruang-admin/css/ruang-admin.min.css') }}" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
-
+    <link href="{{ asset('ruang-admin/vendor/datatables/dataTables.bootstrap4.min.css') }}" rel="stylesheet">
 </head>
 
 <body id="page-top">
@@ -34,7 +33,7 @@
                     @yield('content')
                 </div>
             </div>
-            
+
             <!-- End of Main Content -->
 
             @include('layout.footer')
@@ -47,7 +46,17 @@
         </a>
     </div>
 
-    <!-- SweetAlert2 CDN -->
+    <!-- Scripts - URUTAN INI PENTING! -->
+    <script src="{{ asset('ruang-admin/vendor/jquery/jquery.min.js') }}"></script>
+    <script src="{{ asset('ruang-admin/vendor/bootstrap/js/bootstrap.bundle.min.js') }}"></script>
+    <script src="{{ asset('ruang-admin/vendor/jquery-easing/jquery.easing.min.js') }}"></script>
+    <script src="{{ asset('ruang-admin/js/ruang-admin.min.js') }}"></script>
+
+    <!-- DataTables -->
+    <script src="{{ asset('ruang-admin/vendor/datatables/jquery.dataTables.min.js') }}"></script>
+    <script src="{{ asset('ruang-admin/vendor/datatables/dataTables.bootstrap4.min.js') }}"></script>
+
+    <!-- SweetAlert2 -->
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
     @if (session('success'))
@@ -66,32 +75,22 @@
     @endif
 
     <script>
+        // Auto hide alert
         setTimeout(() => {
             const alert = document.querySelector('.alert');
             if (alert) {
                 alert.remove();
             }
         }, 5000);
-    </script>
 
-    <!-- Bootstrap 5 JS -->
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
-
-    <!-- Scripts -->
-    <script src="{{ asset('ruang-admin/vendor/jquery/jquery.min.js') }}"></script>
-    <script src="{{ asset('ruang-admin/vendor/bootstrap/js/bootstrap.bundle.min.js') }}"></script>
-    <script src="{{ asset('ruang-admin/vendor/jquery-easing/jquery.easing.min.js') }}"></script>
-    <script src="{{ asset('ruang-admin/js/ruang-admin.min.js') }}"></script>
-
-    <!-- HAPUS 2 BARIS INI - INI YANG BIKIN KONFLIK -->
-    <!-- <script src="{{ asset('ruang-admin/vendor/chart.js/Chart.min.js') }}"></script> -->
-    <!-- <script src="{{ asset('ruang-admin/js/demo/chart-area-demo.js') }}"></script> -->
-
-    <script>
+        // Initialize tooltip
         $(function() {
             $('[data-toggle="tooltip"]').tooltip()
         })
     </script>
+
+    <!-- Stack untuk script tambahan dari child view -->
+    @stack('scripts')
 
     @yield('scripts')
 </body>

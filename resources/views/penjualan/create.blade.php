@@ -15,14 +15,7 @@
             </a>
         </div>
 
-        {{-- Notifikasi --}}
-        @if (session('success'))
-            <div class="alert alert-success alert-dismissible fade show shadow-sm border-0" role="alert">
-                <i class="bi bi-check-circle-fill me-2"></i>{{ session('success') }}
-                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-            </div>
-        @endif
-
+        {{-- Notifikasi Error --}}
         @if (session('error'))
             <div class="alert alert-danger alert-dismissible fade show shadow-sm border-0" role="alert">
                 <i class="bi bi-exclamation-triangle-fill me-2"></i>{{ session('error') }}
@@ -40,7 +33,7 @@
             </div>
         @endif
 
-        <form action="{{ route('penjualan.store') }}" method="POST">
+        <form action="{{ route('penjualan.store') }}" method="POST" id="penjualanForm">
             @csrf
             <div class="row g-4">
                 <!-- Kolom Kiri -->
@@ -65,7 +58,7 @@
                                     </select>
                                 </div>
                                 <small class="text-muted">
-                                    <i class="bi bi-info-circle me-1"></i> 
+                                    <i class="bi bi-info-circle me-1"></i>
                                     <span id="diskonInfo">Pilih pelanggan untuk mendapatkan diskon</span>
                                 </small>
                             </div>
@@ -159,13 +152,28 @@
                                     <select name="metode" id="metode" class="form-select nice-select" required>
                                         <option value="">-- Pilih Metode --</option>
                                         <option value="cash">Cash</option>
-                                        <option value="debit">Debit</option>
-                                        <option value="ewallet">E-Wallet</option>
+                                        <option value="qris">QRIS</option>
                                     </select>
                                 </div>
                             </div>
 
-                            <div class="mb-3">
+                            {{-- QRIS Section --}}
+                            <div id="qrisSection" class="mb-4" style="display: none;">
+                                <div class="card border-primary">
+                                    <div class="card-body text-center p-3">
+                                        <h6 class="fw-bold text-primary mb-2">
+                                            <i class="bi bi-qr-code-scan me-2"></i>Pembayaran QRIS
+                                        </h6>
+                                        <div id="qrisBarcodeContainer" class="mb-2">
+                                            <!-- QR Code akan muncul di sini -->
+                                        </div>
+                                        <div class="fw-bold text-success fs-6" id="qrisAmountDisplay">Rp 0</div>
+                                        <small class="text-muted">Scan QR code untuk pembayaran</small>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="mb-3" id="cashSection">
                                 <label for="jumlah_bayar" class="form-label fw-semibold text-secondary">Jumlah
                                     Bayar</label>
                                 <div class="nice-box input-box">
@@ -174,7 +182,7 @@
                                 </div>
                             </div>
 
-                            <div class="mb-4">
+                            <div class="mb-4" id="kembalianSection">
                                 <label class="form-label fw-semibold text-secondary">Kembalian</label>
                                 <div class="nice-box input-box">
                                     <input type="text" id="kembalian"
@@ -190,6 +198,65 @@
                 </div>
             </div>
         </form>
+
+        {{-- 🔥 MODAL NOTIFIKASI SUKSES - FIXED --}}
+        <div class="modal fade" id="successModal" tabindex="-1" aria-hidden="true">
+            <div class="modal-dialog modal-dialog-centered">
+                <div class="modal-content border-0 shadow-lg">
+                    <div class="modal-body text-center p-5">
+                        <div class="mb-4">
+                            <i class="bi bi-check-circle-fill text-success" style="font-size: 5rem;"></i>
+                        </div>
+                        <h4 class="fw-bold mb-2">Transaksi Berhasil!</h4>
+                        <p class="text-muted mb-4">Data penjualan berhasil disimpan ke database</p>
+
+                        <div class="d-grid gap-2">
+                            <button type="button" class="btn btn-primary btn-lg rounded-pill" id="cetakStrukBtn">
+                                <i class="bi bi-printer me-2"></i> Oke, Cetak Struk
+                            </button>
+                            <button type="button" class="btn btn-outline-secondary btn-lg rounded-pill" id="okeSajaBtn">
+                                <i class="bi bi-check-lg me-2"></i> Oke
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        {{-- 🔥 MODAL QRIS BESAR --}}
+        <div class="modal fade" id="qrisModal" tabindex="-1" aria-hidden="true">
+            <div class="modal-dialog modal-dialog-centered">
+                <div class="modal-content border-0 shadow-lg">
+                    <div class="modal-header border-0 pb-0">
+                        <h5 class="modal-title fw-bold text-primary">
+                            <i class="bi bi-qr-code-scan me-2"></i>Pembayaran QRIS
+                        </h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body text-center p-4">
+                        <div class="mb-3">
+                            <p class="text-muted mb-2">Scan QR Code berikut untuk melakukan pembayaran</p>
+                            <div class="fw-bold fs-4 text-success" id="qrisAmount">Rp 0</div>
+                        </div>
+
+                        <div id="qrCodeContainer" class="mb-3 p-4 bg-light rounded">
+                            <!-- QR Code akan ditampilkan di sini -->
+                        </div>
+
+                        <div class="alert alert-info border-0">
+                            <small>
+                                <i class="bi bi-info-circle me-1"></i>
+                                Pembayaran akan diproses otomatis setelah scan QRIS
+                            </small>
+                        </div>
+
+                        <button type="button" class="btn btn-success w-100 rounded-pill py-2" id="confirmQRIS">
+                            <i class="bi bi-check-circle me-2"></i> Konfirmasi Pembayaran Selesai
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
 
     <style>
@@ -278,19 +345,11 @@
             outline: none !important;
         }
 
-        .pelanggan-box {
+        .pelanggan-box, .produk-box {
             margin-bottom: 16px;
         }
 
-        .produk-box {
-            margin-bottom: 12px;
-        }
-
-        .metode-box {
-            margin-bottom: 8px;
-        }
-
-        .input-box {
+        .metode-box, .input-box {
             margin-bottom: 8px;
         }
 
@@ -306,18 +365,6 @@
             color: #495057;
         }
 
-        @media (max-width: 768px) {
-            .nice-box {
-                padding: 6px 12px;
-            }
-
-            .nice-select,
-            .nice-input {
-                height: 38px;
-                font-size: 14px;
-            }
-        }
-
         .table tbody tr {
             transition: all 0.2s ease;
         }
@@ -327,10 +374,7 @@
             transform: translateY(-1px);
         }
 
-        .pelanggan-box,
-        .produk-box,
-        .metode-box,
-        .input-box {
+        .pelanggan-box, .produk-box, .metode-box, .input-box {
             min-height: 58px;
             display: flex;
             align-items: center;
@@ -343,17 +387,75 @@
             flex: 1;
         }
 
-        /* Highlight diskon info */
         #diskonInfo {
             font-weight: 500;
         }
+
+        /* QRIS Section Styles */
+        #qrisSection .card {
+            border: 2px solid #0d6efd;
+            background: linear-gradient(135deg, #f8f9ff 0%, #e3f2fd 100%);
+        }
+
+        #qrisBarcodeContainer img {
+            max-width: 150px;
+            height: auto;
+            border: 1px solid #dee2e6;
+            border-radius: 8px;
+            padding: 5px;
+            background: white;
+        }
+
+        /* 🔥 FIX MODAL POSITION & Z-INDEX */
+        .modal {
+            z-index: 9999 !important;
+        }
+
+        .modal-backdrop {
+            z-index: 9998 !important;
+        }
+
+        .modal-dialog {
+            margin: 1.75rem auto !important;
+            max-width: 500px !important;
+        }
+
+        .modal-content {
+            border-radius: 20px !important;
+        }
+
+        .modal.fade .modal-dialog {
+            transition: transform .3s ease-out;
+            transform: translateY(-50px);
+        }
+
+        .modal.show .modal-dialog {
+            transform: translateY(0) !important;
+        }
+
+        @media (max-width: 768px) {
+            .nice-box {
+                padding: 6px 12px;
+            }
+
+            .nice-select, .nice-input {
+                height: 38px;
+                font-size: 14px;
+            }
+
+            #qrisBarcodeContainer img {
+                max-width: 120px;
+            }
+        }
     </style>
 
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js"></script>
     <script>
     let produkList = document.getElementById('produkList');
     let addItem = document.getElementById('addItem');
     let produkSelect = document.getElementById('produk');
     let pelangganSelect = document.getElementById('pelanggan_id');
+    let metodeSelect = document.getElementById('metode');
     let subtotalHargaSpan = document.getElementById('subtotalHarga');
     let persenDiskonSpan = document.getElementById('persenDiskon');
     let nominalDiskonSpan = document.getElementById('nominalDiskon');
@@ -364,17 +466,175 @@
     let diskonSection = document.getElementById('diskonSection');
     let diskonNote = document.getElementById('diskonNote');
     let diskonInfo = document.getElementById('diskonInfo');
+    let cashSection = document.getElementById('cashSection');
+    let kembalianSection = document.getElementById('kembalianSection');
+    let qrisSection = document.getElementById('qrisSection');
+    let qrisBarcodeContainer = document.getElementById('qrisBarcodeContainer');
+    let qrisAmountDisplay = document.getElementById('qrisAmountDisplay');
 
-    // ========================================
-    // 🔹 CEK STATUS PELANGGAN
-    // ========================================
+    // Konstanta QRIS
+    const STATIC_QRIS = "00020101021126670016COM.NOBUBANK.WWW01189360050300000879140214844519767362640303UMI51440014ID.CO.QRIS.WWW0215ID20243345184510303UMI5204541153033605802ID5920YANTO SHOP OK18846346005DEPOK61051641162070703A0163046879";
+
+    // Fungsi untuk generate QR Code
+    function generateQRCode(content) {
+        const qr = qrcode(0, 'M');
+        qr.addData(content);
+        qr.make();
+        return qr.createDataURL(8);
+    }
+
+    // Fungsi untuk generate string QRIS
+    function generateQRIS(amount) {
+        if (isNaN(amount) || amount <= 0) return '';
+
+        let qris = STATIC_QRIS.slice(0, -4);
+        let step1 = qris.replace("010211", "010212");
+        let step2 = step1.split("5802ID");
+        let uang = "54" + amount.toString().length.toString().padStart(2, '0') + amount.toString();
+        uang += "5802ID";
+        const fix = step2[0].trim() + uang + step2[1].trim();
+        const finalQR = fix + ConvertCRC16(fix);
+
+        return finalQR;
+    }
+
+    // Fungsi untuk menghitung CRC16
+    function ConvertCRC16(str) {
+        let crc = 0xFFFF;
+        for (let c = 0; c < str.length; c++) {
+            crc ^= str.charCodeAt(c) << 8;
+            for (let i = 0; i < 8; i++) {
+                crc = (crc & 0x8000) ? (crc << 1) ^ 0x1021 : crc << 1;
+            }
+        }
+        let hex = (crc & 0xFFFF).toString(16).toUpperCase();
+        return hex.length === 3 ? '0' + hex : hex.padStart(4, '0');
+    }
+
+    // Toggle tampilan input berdasarkan metode pembayaran
+    function togglePaymentInputs() {
+        const metode = metodeSelect.value;
+
+        if (metode === 'cash') {
+            cashSection.style.display = 'block';
+            kembalianSection.style.display = 'block';
+            qrisSection.style.display = 'none';
+            jumlahBayarInput.required = true;
+        } else if (metode === 'qris') {
+            cashSection.style.display = 'none';
+            kembalianSection.style.display = 'none';
+            qrisSection.style.display = 'block';
+            jumlahBayarInput.required = false;
+
+            // Set jumlah bayar sama dengan total untuk QRIS
+            const totalSetelahDiskon = parseInt(totalHargaSpan.innerText.replace(/\D/g, '')) || 0;
+            jumlahBayarInput.value = totalSetelahDiskon;
+
+            // Generate QR Code untuk QRIS
+            generateQRISBarcode(totalSetelahDiskon);
+        } else {
+            cashSection.style.display = 'block';
+            kembalianSection.style.display = 'block';
+            qrisSection.style.display = 'none';
+        }
+    }
+
+    // Fungsi untuk generate barcode QRIS
+    function generateQRISBarcode(amount) {
+        if (amount <= 0) {
+            qrisBarcodeContainer.innerHTML = '<p class="text-muted">Total harus lebih dari 0</p>';
+            qrisAmountDisplay.textContent = 'Rp 0';
+            return;
+        }
+
+        const qrContent = generateQRIS(amount);
+        const qrImageUrl = generateQRCode(qrContent);
+
+        qrisBarcodeContainer.innerHTML = `
+            <img src="${qrImageUrl}" alt="QR Code Pembayaran" class="img-fluid">
+        `;
+        qrisAmountDisplay.textContent = formatRupiah(amount);
+    }
+
+    // Event listener untuk metode pembayaran
+    metodeSelect.addEventListener('change', togglePaymentInputs);
+
+    // 🔥 CEK APAKAH ADA PENJUALAN BARU - VERSI FIXED
+    @if(session('success') && session('penjualan_id'))
+        document.addEventListener('DOMContentLoaded', function() {
+            let penjualanId = {{ session('penjualan_id') }};
+            let metodePembayaran = '{{ session("metode_pembayaran", "cash") }}';
+            let totalBayar = {{ session("total_bayar", 0) }};
+
+            // Jika metode QRIS, tampilkan modal QRIS
+            if (metodePembayaran === 'qris') {
+                showQRISModal(totalBayar, penjualanId);
+            } else {
+                // Jika cash, tampilkan modal sukses biasa
+                showSuccessModal(penjualanId);
+            }
+        });
+    @endif
+
+    // Fungsi untuk menampilkan modal QRIS
+    function showQRISModal(amount, penjualanId) {
+        const qrContent = generateQRIS(amount);
+        const qrImageUrl = generateQRCode(qrContent);
+
+        document.getElementById('qrisAmount').textContent = formatRupiah(amount);
+        document.getElementById('qrCodeContainer').innerHTML = `
+            <img src="${qrImageUrl}" alt="QR Code" style="max-width: 250px; height: auto;">
+        `;
+
+        const qrisModal = new bootstrap.Modal(document.getElementById('qrisModal'));
+        qrisModal.show();
+
+        // Event listener untuk konfirmasi QRIS
+        document.getElementById('confirmQRIS').addEventListener('click', function() {
+            qrisModal.hide();
+            setTimeout(() => {
+                showSuccessModal(penjualanId);
+            }, 300);
+        });
+    }
+
+    // Fungsi untuk menampilkan modal sukses
+    function showSuccessModal(penjualanId) {
+        const successModal = new bootstrap.Modal(document.getElementById('successModal'));
+        successModal.show();
+
+        // Event listener untuk tombol Cetak Struk
+        document.getElementById('cetakStrukBtn').addEventListener('click', function() {
+            window.open('{{ route("penjualan.struk", "") }}/' + penjualanId, '_blank');
+            successModal.hide();
+            setTimeout(() => resetForm(), 300);
+        });
+
+        // Event listener untuk tombol Oke Saja
+        document.getElementById('okeSajaBtn').addEventListener('click', function() {
+            successModal.hide();
+            setTimeout(() => resetForm(), 300);
+        });
+    }
+
+    // 🔥 FUNGSI RESET FORM
+    function resetForm() {
+        pelangganSelect.value = '';
+        produkSelect.value = '';
+        metodeSelect.value = '';
+        jumlahBayarInput.value = '';
+        kembalianInput.value = '';
+        produkList.innerHTML = '';
+        updateDiskonInfo();
+        toggleEmptyState();
+        hitungTotal();
+        togglePaymentInputs();
+    }
+
     function isPelangganTerdaftar() {
         return pelangganSelect.value !== '';
     }
 
-    // ========================================
-    // 🔹 UPDATE INFO DISKON
-    // ========================================
     function updateDiskonInfo() {
         if (isPelangganTerdaftar()) {
             diskonInfo.innerHTML = '<span class="text-success fw-semibold">✓ Pelanggan mendapat diskon</span>';
@@ -387,15 +647,11 @@
         }
     }
 
-    // Event listener untuk perubahan pelanggan
     pelangganSelect.addEventListener('change', function() {
         updateDiskonInfo();
         hitungTotal();
     });
 
-    // ========================================
-    // 🔹 FUNGSI HELPER
-    // ========================================
     function formatRupiah(angka) {
         return 'Rp ' + (angka ? angka.toLocaleString('id-ID') : '0');
     }
@@ -404,12 +660,10 @@
         emptyState.style.display = produkList.children.length === 0 ? 'block' : 'none';
     }
 
-    // ========================================
-    // 🔹 VALIDASI FORM SEBELUM SUBMIT
-    // ========================================
     document.querySelector('form').addEventListener('submit', function(e) {
         let totalSetelahDiskon = parseInt(totalHargaSpan.innerText.replace(/\D/g, '')) || 0;
         let jumlahBayar = parseInt(jumlahBayarInput.value) || 0;
+        const metode = metodeSelect.value;
 
         if (produkList.children.length === 0) {
             e.preventDefault();
@@ -417,21 +671,24 @@
             return;
         }
 
-        if (jumlahBayar < totalSetelahDiskon) {
+        if (metode === 'cash' && jumlahBayar < totalSetelahDiskon) {
             e.preventDefault();
             let kurang = totalSetelahDiskon - jumlahBayar;
             alert('⚠️ Jumlah bayar kurang dari total!\nKurang: Rp ' + kurang.toLocaleString('id-ID'));
             jumlahBayarInput.focus();
             return;
         }
+
+        if (metode === 'qris' && jumlahBayar !== totalSetelahDiskon) {
+            e.preventDefault();
+            alert('⚠️ Untuk pembayaran QRIS, jumlah bayar harus sama dengan total!');
+            return;
+        }
     });
 
-    // ========================================
-    // 🔹 TAMBAH PRODUK KE KERANJANG
-    // ========================================
     addItem.addEventListener('click', function() {
         let option = produkSelect.options[produkSelect.selectedIndex];
-        
+
         if (!option.value) {
             alert('⚠️ Pilih produk terlebih dahulu!');
             return;
@@ -484,7 +741,7 @@
                 <td>${satuan}</td>
                 <td class="fw-semibold">${formatRupiah(harga)}</td>
                 <td>
-                    <input type="number" name="jumlah_produk[]" value="1" min="1" max="${stok}" 
+                    <input type="number" name="jumlah_produk[]" value="1" min="1" max="${stok}"
                            class="form-control form-control-sm jumlah">
                 </td>
                 <td class="subtotal fw-semibold">${formatRupiah(harga)}</td>
@@ -501,9 +758,6 @@
         hitungTotal();
     });
 
-    // ========================================
-    // 🔹 HAPUS PRODUK DARI KERANJANG
-    // ========================================
     produkList.addEventListener('click', function(e) {
         if (e.target.classList.contains('removeItem') || e.target.closest('.removeItem')) {
             let button = e.target.classList.contains('removeItem') ? e.target : e.target.closest('.removeItem');
@@ -513,9 +767,6 @@
         }
     });
 
-    // ========================================
-    // 🔹 UPDATE JUMLAH PRODUK
-    // ========================================
     produkList.addEventListener('input', function(e) {
         if (e.target.classList.contains('jumlah')) {
             let row = e.target.closest('tr');
@@ -525,7 +776,7 @@
 
             let produkId = row.querySelector('input[name="produk_id[]"]').value;
             let option = Array.from(produkSelect.options).find(opt => opt.value === produkId);
-            
+
             if (option) {
                 let stok = parseInt(option.getAttribute('data-stok'));
                 if (jumlah > stok) {
@@ -543,55 +794,45 @@
         }
     });
 
-    // ========================================
-    // 🔹 HITUNG TOTAL & DISKON (HANYA PELANGGAN)
-    // ========================================
     function hitungTotal() {
         let subtotal = 0;
-        
+
         produkList.querySelectorAll('tr').forEach(row => {
             subtotal += parseInt(row.querySelector('.subtotal').innerText.replace(/\D/g, '')) || 0;
         });
 
-        // ========================================
-        // 💡 DISKON HANYA UNTUK PELANGGAN TERDAFTAR
-        // ========================================
         let nominalDiskon = 0;
-        
+
         if (isPelangganTerdaftar()) {
-            // Hitung diskon (Rp 5.000 per Rp 100.000)
             let kelipatan100rb = Math.floor(subtotal / 100000);
             nominalDiskon = kelipatan100rb * 5000;
             nominalDiskon = Math.min(nominalDiskon, subtotal);
-            
-            // Tampilkan section diskon
+
             diskonSection.style.display = 'flex !important';
             diskonNote.style.display = 'block';
         } else {
-            // Sembunyikan section diskon untuk umum
             diskonSection.style.display = 'none !important';
             diskonNote.style.display = 'none';
         }
-        
-        // Hitung persentase diskon
+
         let persenDiskon = subtotal > 0 ? ((nominalDiskon / subtotal) * 100).toFixed(1) : 0;
 
-        // Update tampilan
         subtotalHargaSpan.innerText = formatRupiah(subtotal);
         persenDiskonSpan.innerText = persenDiskon + '%';
         nominalDiskonSpan.innerText = formatRupiah(nominalDiskon);
 
-        // Total setelah diskon
         let totalSetelahDiskon = subtotal - nominalDiskon;
         totalHargaSpan.innerText = formatRupiah(totalSetelahDiskon);
 
-        // Hitung kembalian
+        // Untuk QRIS, set jumlah bayar sama dengan total dan generate barcode
+        if (metodeSelect.value === 'qris') {
+            jumlahBayarInput.value = totalSetelahDiskon;
+            generateQRISBarcode(totalSetelahDiskon);
+        }
+
         updateKembalian(totalSetelahDiskon);
     }
 
-    // ========================================
-    // 🔹 UPDATE KEMBALIAN
-    // ========================================
     function updateKembalian(totalSetelahDiskon) {
         let bayar = parseInt(jumlahBayarInput.value) || 0;
         let kembali = bayar - totalSetelahDiskon;
@@ -607,19 +848,15 @@
         }
     }
 
-    // ========================================
-    // 🔹 EVENT LISTENER
-    // ========================================
     jumlahBayarInput.addEventListener('input', function() {
         let totalSetelahDiskon = parseInt(totalHargaSpan.innerText.replace(/\D/g, '')) || 0;
         updateKembalian(totalSetelahDiskon);
     });
 
-    // ========================================
-    // 🔹 INISIALISASI AWAL
-    // ========================================
+    // Inisialisasi
     updateDiskonInfo();
     toggleEmptyState();
     hitungTotal();
+    togglePaymentInputs();
 </script>
 @endsection

@@ -14,10 +14,11 @@ return new class extends Migration
         Schema::create('tbl_pembayarans', function (Blueprint $table) {
             $table->increments('pembayaran_id');
             $table->unsignedInteger('penjualan_id');
-            $table->enum('metode', ['cash', 'debit', 'ewallet']);
+            $table->enum('metode', ['cash', 'qris']);
             $table->decimal('jumlah', 12, 2);
             $table->decimal('kembalian', 10,2)->default(0);
             $table->dateTime('tanggal_pembayaran');
+            $table->string('qris_reference')->nullable();
             $table->timestamps();
 
             $table->foreign('penjualan_id')->references('penjualan_id')->on('tbl_penjualans')->onDelete('cascade');

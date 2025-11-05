@@ -278,7 +278,7 @@
                                         <tr>
                                             <td class="ps-3">
                                                 <div class="d-flex align-items-center">
-                                                    <div class="rounded-circle bg-primary text-white d-flex align-items-center justify-content-center me-2" 
+                                                    <div class="rounded-circle bg-primary text-white d-flex align-items-center justify-content-center me-2"
                                                          style="width: 35px; height: 35px; font-weight: bold;">
                                                         {{ strtoupper(substr($kasir->name, 0, 1)) }}
                                                     </div>

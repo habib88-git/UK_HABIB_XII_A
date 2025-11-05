@@ -10,6 +10,7 @@ use App\Models\Pelanggans;
 use App\Models\Users;
 use App\Models\Produks;
 use App\Models\Pembayarans;
+use App\Models\Kategoris;
 use App\Models\DetailPenjualans;
 
 class PenjualanController extends Controller
@@ -26,8 +27,10 @@ class PenjualanController extends Controller
     public function create()
     {
         $pelanggans = Pelanggans::all();
-        $produks = Produks::all();
-        return view('penjualan.create', compact('pelanggans','produks'));
+        $produks = Produks::with(['satuan', 'kategori'])->get();
+        $kategoris = Kategoris::all();
+
+        return view('penjualan.create', compact('pelanggans', 'produks', 'kategoris'));
     }
 
     public function store(Request $request)
@@ -36,7 +39,7 @@ class PenjualanController extends Controller
             'pelanggan_id'   => 'nullable',
             'produk_id.*'    => 'required',
             'jumlah_produk.*'=> 'required|integer|min:1',
-            'metode'         => 'required',
+            'metode'         => 'required|in:cash,qris',
             'jumlah_bayar'   => 'required|numeric|min:0',
         ]);
 
@@ -57,27 +60,26 @@ class PenjualanController extends Controller
                 $total += $subtotal;
             }
 
-            // ========================================
-            // 💡 DISKON HANYA UNTUK PELANGGAN TERDAFTAR
-            // ========================================
+            // Hitung diskon untuk pelanggan terdaftar
             $nominalDiskon = 0;
-            
-            // Cek apakah ada pelanggan_id (bukan umum)
             if ($request->pelanggan_id) {
-                // Diskon Rp 5.000 per Rp 100.000
                 $jumlahKelipatan100rb = floor($total / 100000);
                 $nominalDiskon = $jumlahKelipatan100rb * 5000;
-                
-                // Batas diskon = total
                 $nominalDiskon = min($nominalDiskon, $total);
             }
 
             $totalSetelahDiskon = $total - $nominalDiskon;
 
-            // Validasi jumlah bayar
-            if ($request->jumlah_bayar < $totalSetelahDiskon) {
+            // Validasi jumlah bayar untuk cash
+            if ($request->metode == 'cash' && $request->jumlah_bayar < $totalSetelahDiskon) {
                 DB::rollBack();
                 return back()->with('error', 'Jumlah bayar kurang dari total harga setelah diskon!');
+            }
+
+            // Untuk QRIS, jumlah bayar harus sama dengan total
+            if ($request->metode == 'qris' && $request->jumlah_bayar != $totalSetelahDiskon) {
+                DB::rollBack();
+                return back()->with('error', 'Untuk pembayaran QRIS, jumlah bayar harus sama dengan total!');
             }
 
             // Simpan penjualan
@@ -111,17 +113,70 @@ class PenjualanController extends Controller
                 'penjualan_id'      => $penjualan->penjualan_id,
                 'metode'            => $request->metode,
                 'jumlah'            => $request->jumlah_bayar,
-                'kembalian'         => $request->jumlah_bayar - $totalSetelahDiskon,
+                'kembalian'         => $request->metode == 'cash' ? ($request->jumlah_bayar - $totalSetelahDiskon) : 0,
                 'tanggal_pembayaran'=> now(),
+                'qris_reference'    => $request->metode == 'qris' ? 'QRIS-' . time() . '-' . $penjualan->penjualan_id : null,
             ]);
 
             DB::commit();
-            return redirect()->route('penjualan.index')->with('success','Transaksi berhasil disimpan');
+
+            // Redirect dengan data transaksi
+            return redirect()->route('penjualan.create')->with([
+                'success' => 'Transaksi berhasil disimpan',
+                'penjualan_id' => $penjualan->penjualan_id,
+                'metode_pembayaran' => $request->metode,
+                'total_bayar' => $totalSetelahDiskon
+            ]);
 
         } catch (\Exception $e) {
             DB::rollBack();
             return back()->with('error', 'Terjadi kesalahan: ' . $e->getMessage());
         }
+    }
+
+    // Method untuk cetak struk
+    public function cetakStruk($id)
+    {
+        $penjualan = Penjualans::with([
+            'pelanggan',
+            'user',
+            'detailPenjualans.produk',
+            'pembayaran'
+        ])->findOrFail($id);
+
+        return view('laporan.struk', compact('penjualan'));
+    }
+
+    // Method untuk generate QRIS
+    public function generateQRIS($amount)
+    {
+        $STATIC_QRIS = "00020101021126670016COM.NOBUBANK.WWW01189360050300000879140214844519767362640303UMI51440014ID.CO.QRIS.WWW0215ID20243345184510303UMI5204541153033605802ID5920YANTO SHOP OK18846346005DEPOK61051641162070703A0163046879";
+
+        function charCodeAt($str, $index) {
+            return ord($str[$index]);
+        }
+
+        function ConvertCRC16($str) {
+            $crc = 0xFFFF;
+            for ($c = 0; $c < strlen($str); $c++) {
+                $crc ^= charCodeAt($str, $c) << 8;
+                for ($i = 0; $i < 8; $i++) {
+                    $crc = ($crc & 0x8000) ? ($crc << 1) ^ 0x1021 : $crc << 1;
+                }
+            }
+            $hex = strtoupper(dechex($crc & 0xFFFF));
+            return strlen($hex) === 3 ? '0' . $hex : str_pad($hex, 4, '0', STR_PAD_LEFT);
+        }
+
+        $qris = substr($STATIC_QRIS, 0, -4);
+        $step1 = str_replace("010211", "010212", $qris);
+        $step2 = explode("5802ID", $step1);
+        $uang = "54" . str_pad(strlen($amount), 2, '0', STR_PAD_LEFT) . $amount;
+        $uang .= "5802ID";
+        $fix = trim($step2[0]) . $uang . trim($step2[1]);
+        $finalQR = $fix . ConvertCRC16($fix);
+
+        return $finalQR;
     }
 
     public function show(string $id)

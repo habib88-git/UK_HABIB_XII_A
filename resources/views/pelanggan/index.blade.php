@@ -10,8 +10,8 @@
             <i class="fas fa-user-friends"></i> Daftar Pelanggan
         </h3>
 
-        {{-- Tombol tambah hanya muncul kalau role-nya admin atau kasir --}}
-        @if (auth()->user()->role === 'admin' || auth()->user()->role === 'kasir')
+        {{-- Tombol tambah pelanggan hanya untuk kasir --}}
+        @if (auth()->user()->role === 'kasir')
             <a href="{{ route('pelanggan.create') }}" class="btn btn-success shadow-sm">
                 <i class="fas fa-user-plus"></i> Tambah Pelanggan
             </a>
@@ -30,7 +30,7 @@
                             <th>Alamat</th>
                             <th>Telepon</th>
 
-                            {{-- Kolom Aksi hanya untuk admin --}}
+                            {{-- Kolom aksi hanya untuk admin --}}
                             @if (auth()->user()->role === 'admin')
                                 <th style="width: 12%">Aksi</th>
                             @endif
@@ -48,22 +48,21 @@
                                 @if (auth()->user()->role === 'admin')
                                     <td class="text-center">
                                         <div class="d-flex justify-content-center gap-1">
-                                            {{-- Tombol Edit --}}
+                                            {{-- Edit --}}
                                             <a href="{{ route('pelanggan.edit', $p->pelanggan_id) }}"
-                                               class="btn btn-sm btn-outline-warning"
-                                               data-toggle="tooltip" title="Edit Pelanggan">
+                                               class="btn btn-sm btn-outline-warning" data-toggle="tooltip"
+                                               title="Edit Pelanggan">
                                                 <i class="fas fa-edit"></i>
                                             </a>
 
-                                            {{-- Tombol Hapus --}}
+                                            {{-- Hapus --}}
                                             <form action="{{ route('pelanggan.destroy', $p->pelanggan_id) }}"
                                                   method="POST"
                                                   onsubmit="return confirm('Yakin ingin menghapus pelanggan ini?')">
                                                 @csrf
                                                 @method('DELETE')
-                                                <button type="submit"
-                                                        class="btn btn-sm btn-outline-danger"
-                                                        data-toggle="tooltip" title="Hapus Pelanggan">
+                                                <button type="submit" class="btn btn-sm btn-outline-danger"
+                                                    data-toggle="tooltip" title="Hapus Pelanggan">
                                                     <i class="fas fa-trash"></i>
                                                 </button>
                                             </form>
@@ -89,7 +88,7 @@
 
 @section('scripts')
 <script>
-    $(function () {
+    $(function() {
         $('[data-toggle="tooltip"]').tooltip();
     });
 </script>
