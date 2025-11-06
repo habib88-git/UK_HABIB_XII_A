@@ -33,15 +33,17 @@
 
                     <div class="row">
                         <div class="col-md-6 mb-3">
-                            <label for="nama_produk" class="form-label">Nama Produk</label>
-                            <input type="text" id="nama_produk" name="nama_produk" class="form-control"
-                                value="{{ old('nama_produk') }}" required maxlength="100">
+                            <label for="barcode" class="form-label">Barcode <small class="text-muted">(Opsional - Auto
+                                    Generate)</small></label>
+                            <input type="text" id="barcode" name="barcode" class="form-control"
+                                value="{{ old('barcode') }}" maxlength="50" placeholder="Kosongkan untuk generate otomatis">
+                            <small class="text-muted">Jika dikosongkan, barcode akan di-generate otomatis</small>
                         </div>
 
                         <div class="col-md-6 mb-3">
-                            <label for="stok" class="form-label">Stok</label>
-                            <input type="number" id="stok" name="stok" class="form-control"
-                                value="{{ old('stok', 0) }}" required min="0">
+                            <label for="nama_produk" class="form-label">Nama Produk</label>
+                            <input type="text" id="nama_produk" name="nama_produk" class="form-control"
+                                value="{{ old('nama_produk') }}" required maxlength="100">
                         </div>
 
                         <div class="col-md-6 mb-3">
@@ -56,7 +58,17 @@
                                 value="{{ old('harga_jual') }}" required step="0.01" min="0">
                         </div>
 
+                        <div class="col-md-6 mb-3">
+                            <label for="stok" class="form-label">Stok</label>
+                            <input type="number" id="stok" name="stok" class="form-control"
+                                value="{{ old('stok', 0) }}" required min="0">
+                        </div>
 
+                        <div class="col-md-6 mb-3">
+                            <label for="kadaluwarsa" class="form-label">Tanggal Kadaluwarsa</label>
+                            <input type="date" id="kadaluwarsa" name="kadaluwarsa" class="form-control"
+                                value="{{ old('kadaluwarsa') }}" required>
+                        </div>
 
                         <div class="col-md-6 mb-3">
                             <label for="kategori_id" class="form-label">Kategori</label>
@@ -83,13 +95,13 @@
                                 @endforeach
                             </select>
                         </div>
-                    </div>
 
-                    <div class="col-md-6 mb-3">
-                        <label for="photo" class="form-label">Foto Produk</label>
-                        <input type="file" id="photo" name="photo" class="form-control"
-                            accept="image/jpeg,image/png,image/jpg">
-                        <small class="text-muted">Format: jpeg, png, jpg | Maksimal: 2MB</small>
+                        <div class="col-md-6 mb-3">
+                            <label for="photo" class="form-label">Foto Produk</label>
+                            <input type="file" id="photo" name="photo" class="form-control"
+                                accept="image/jpeg,image/png,image/jpg">
+                            <small class="text-muted">Format: jpeg, png, jpg | Maksimal: 2MB</small>
+                        </div>
                     </div>
 
                     <div class="text-end">

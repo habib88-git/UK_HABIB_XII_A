@@ -99,6 +99,10 @@ Route::middleware(['kasir'])->group(function () {
 // Resource route (pastikan ini di bawah route manual di atas)
 Route::resource('penjualan', PenjualanController::class)->middleware('kasir');
 
+Route::post('/produk/scan-barcode', [ProdukController::class, 'scanBarcode'])->name('produk.scan');
+Route::get('/produk/barcode/{id}', [ProdukController::class, 'cetakBarcode'])->name('produk.cetakBarcode');
+Route::get('/produk/barcode-semua', [ProdukController::class, 'cetakSemuaBarcode'])->name('produk.cetakSemuaBarcode');
+
 Route::resource('produk', ProdukController::class)->middleware('admin');
 Route::resource('penjualan', PenjualanController::class)->middleware('kasir');
 Route::resource('supplier', SupplierController::class)->middleware('admin');

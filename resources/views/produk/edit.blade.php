@@ -35,15 +35,16 @@
 
                     <div class="row">
                         <div class="col-md-6 mb-3">
-                            <label for="nama_produk" class="form-label">Nama Produk</label>
-                            <input type="text" name="nama_produk" id="nama_produk" class="form-control"
-                                value="{{ old('nama_produk', $produk->nama_produk) }}" required maxlength="100">
+                            <label for="barcode" class="form-label">Barcode</label>
+                            <input type="text" name="barcode" id="barcode" class="form-control"
+                                value="{{ old('barcode', $produk->barcode) }}" maxlength="50" readonly>
+                            <small class="text-muted">Barcode tidak dapat diubah</small>
                         </div>
 
                         <div class="col-md-6 mb-3">
-                            <label for="stok" class="form-label">Stok</label>
-                            <input type="number" name="stok" id="stok" class="form-control"
-                                value="{{ old('stok', $produk->stok) }}" required min="0">
+                            <label for="nama_produk" class="form-label">Nama Produk</label>
+                            <input type="text" name="nama_produk" id="nama_produk" class="form-control"
+                                value="{{ old('nama_produk', $produk->nama_produk) }}" required maxlength="100">
                         </div>
 
                         <div class="col-md-6 mb-3">
@@ -56,6 +57,18 @@
                             <label for="harga_jual" class="form-label">Harga Jual</label>
                             <input type="number" name="harga_jual" id="harga_jual" class="form-control"
                                 value="{{ old('harga_jual', $produk->harga_jual) }}" required step="0.01" min="0">
+                        </div>
+
+                        <div class="col-md-6 mb-3">
+                            <label for="stok" class="form-label">Stok</label>
+                            <input type="number" name="stok" id="stok" class="form-control"
+                                value="{{ old('stok', $produk->stok) }}" required min="0">
+                        </div>
+
+                        <div class="col-md-6 mb-3">
+                            <label for="kadaluwarsa" class="form-label">Tanggal Kadaluwarsa</label>
+                            <input type="date" name="kadaluwarsa" id="kadaluwarsa" class="form-control"
+                                value="{{ old('kadaluwarsa', $produk->kadaluwarsa->format('Y-m-d')) }}" required>
                         </div>
 
                         <div class="col-md-6 mb-3">
@@ -95,6 +108,14 @@
                             <input type="file" name="photo" id="photo" class="form-control"
                                 accept="image/jpeg,image/png,image/jpg">
                             <small class="text-muted">Upload foto baru jika ingin mengganti. Maksimal 2MB.</small>
+                        </div>
+
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Barcode Visual</label>
+                            <div class="border p-3 rounded text-center bg-light">
+                                {!! DNS1D::getBarcodeHTML($produk->barcode, 'EAN13', 2, 60) !!}
+                                <div class="mt-2">{{ $produk->barcode }}</div>
+                            </div>
                         </div>
                     </div>
 

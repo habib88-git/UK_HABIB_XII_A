@@ -100,5 +100,6 @@ return [
     'aliases' => Facade::defaultAliases()->merge([
         'NoCaptcha' => Anhskohbo\NoCaptcha\Facades\NoCaptcha::class,
     ])->toArray(),
+    'Pdf' => Barryvdh\DomPDF\Facade\Pdf::class,
 
 ];

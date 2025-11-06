@@ -13,11 +13,13 @@ return new class extends Migration
     {
         Schema::create('tbl_produks', function (Blueprint $table) {
             $table->increments('produk_id');
+            $table->string('barcode', 50)->unique();
             $table->string('nama_produk', 100);
             $table->string('photo')->nullable();
             $table->decimal('harga_jual', 10, 2);
             $table->decimal('harga_beli', 10, 2);
             $table->integer('stok')->default(0);
+            $table->date('kadaluwarsa');
             $table->unsignedInteger('kategori_id');
             $table->unsignedInteger('satuan_id');
             $table->timestamps();
