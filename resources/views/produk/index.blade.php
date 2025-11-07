@@ -9,9 +9,14 @@
             <h1 class="h3 mb-0 text-gray-800">
                 <i class="fas fa-box"></i> Daftar Produk
             </h1>
-            <a href="{{ route('produk.create') }}" class="btn btn-primary shadow-sm">
-                <i class="fas fa-plus fa-sm text-white-50"></i> Tambah Produk
-            </a>
+            <div>
+                <a href="{{ route('produk.cetakSemuaBarcode') }}" target="_blank" class="btn btn-success shadow-sm mr-2">
+                    <i class="fas fa-barcode"></i> Cetak Semua Barcode
+                </a>
+                <a href="{{ route('produk.create') }}" class="btn btn-primary shadow-sm">
+                    <i class="fas fa-plus"></i> Tambah Produk
+                </a>
+            </div>
         </div>
 
         {{-- Alert Success --}}
@@ -23,9 +28,7 @@
                 </button>
             </div>
         @endif
-        <a href="{{ route('produk.cetakSemuaBarcode') }}" class="btn btn-success mb-3">
-            <i class="fas fa-print"></i> Cetak Semua Barcode
-        </a>
+
         {{-- DataTable Card --}}
         <div class="row">
             <div class="col-lg-12">
@@ -47,7 +50,7 @@
                                     <th>Harga Jual</th>
                                     <th>Stok</th>
                                     <th>Kadaluwarsa</th>
-                                    <th style="width: 13%">Aksi</th>
+                                    <th style="width: 16%">Aksi</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -92,25 +95,28 @@
                                             </span>
                                         </td>
                                         <td class="text-center">
-                                            <a href="{{ route('produk.edit', $produk->produk_id) }}"
-                                                class="btn btn-sm btn-outline-warning" data-toggle="tooltip"
-                                                title="Edit Produk">
-                                                <i class="fas fa-edit"></i>
-                                            </a>
-                                            <a href="{{ route('produk.cetakBarcode', $produk->produk_id) }}"
-                                                class="btn btn-sm btn-secondary">
-                                                <i class="fas fa-barcode"></i> Cetak
-                                            </a>
-                                            <form action="{{ route('produk.destroy', $produk->produk_id) }}" method="POST"
-                                                style="display:inline-block;"
-                                                onsubmit="return confirm('Yakin ingin menghapus produk ini?')">
-                                                @csrf
-                                                @method('DELETE')
-                                                <button type="submit" class="btn btn-sm btn-outline-danger"
-                                                    data-toggle="tooltip" title="Hapus Produk">
-                                                    <i class="fas fa-trash"></i>
-                                                </button>
-                                            </form>
+                                            <div class="d-flex justify-content-center" style="gap: 8px;">
+                                                <a href="{{ route('produk.edit', $produk->produk_id) }}"
+                                                    class="btn btn-sm btn-outline-warning" data-toggle="tooltip"
+                                                    title="Edit Produk">
+                                                    <i class="fas fa-edit"></i>
+                                                </a>
+                                                <a href="{{ route('produk.cetakBarcode', $produk->produk_id) }}"
+                                                    target="_blank" class="btn btn-sm btn-outline-secondary"
+                                                    data-toggle="tooltip" title="Cetak Barcode">
+                                                    <i class="fas fa-barcode"></i>
+                                                </a>
+                                                <form action="{{ route('produk.destroy', $produk->produk_id) }}"
+                                                    method="POST" style="display:inline-block;"
+                                                    onsubmit="return confirm('Yakin ingin menghapus produk ini?')">
+                                                    @csrf
+                                                    @method('DELETE')
+                                                    <button type="submit" class="btn btn-sm btn-outline-danger"
+                                                        data-toggle="tooltip" title="Hapus Produk">
+                                                        <i class="fas fa-trash"></i>
+                                                    </button>
+                                                </form>
+                                            </div>
                                         </td>
                                     </tr>
                                 @empty
@@ -129,6 +135,37 @@
 
     </div>
 @endsection
+
+@push('styles')
+    <style>
+        .btn-group .btn {
+            margin-right: 8px;
+            border-radius: 4px;
+            padding: 0.375rem 0.75rem;
+        }
+
+        .btn-group .btn:last-child {
+            margin-right: 0;
+        }
+
+        /* Gaya baru untuk flex layout */
+        .d-flex.justify-content-center {
+            padding: 4px 0;
+        }
+
+        .d-flex.justify-content-center .btn,
+        .d-flex.justify-content-center form {
+            margin: 0 4px;
+        }
+
+        .d-flex.justify-content-center .btn {
+            min-width: 36px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+    </style>
+@endpush
 
 @push('scripts')
     <script>

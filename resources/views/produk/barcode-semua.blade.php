@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="id">
+
 <head>
     <meta charset="UTF-8">
     <title>Cetak Semua Barcode Produk</title>
@@ -24,39 +25,52 @@
             padding: 8px;
             margin: 5px;
             text-align: center;
-            justify-content: center;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
         }
 
         .label h4 {
             font-size: 12px;
             margin: 0 0 5px 0;
+            width: 100%;
+        }
+
+        .barcode-container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            width: 100%;
+            margin: 8px 0;
         }
 
         .barcode {
-            flex: 1;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            margin-top: 8px;
+            display: inline-block;
+            text-align: center;
         }
 
         small {
             font-size: 10px;
+            margin-top: 5px;
         }
     </style>
 </head>
+
 <body>
     <h3 style="margin-bottom: 10px;">Daftar Barcode Produk</h3>
     <div class="grid">
         @foreach ($produks as $produk)
             <div class="label">
                 <h4>{{ $produk->nama_produk }}</h4>
-                <div class="barcode">
-                    {!! DNS1D::getBarcodeHTML($produk->barcode, 'EAN13', 1.2, 40) !!}
+                <div class="barcode-container">
+                    <div class="barcode">
+                        {!! DNS1D::getBarcodeHTML($produk->barcode, 'EAN13', 1.2, 40) !!}
+                    </div>
                 </div>
                 <small>{{ $produk->barcode }}</small>
             </div>
         @endforeach
     </div>
 </body>
+
 </html>

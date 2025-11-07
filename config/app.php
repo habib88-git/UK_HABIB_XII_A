@@ -88,6 +88,12 @@ return [
         App\Providers\EventServiceProvider::class,
         App\Providers\RouteServiceProvider::class,
 
+        //Untuk PDF
+        Barryvdh\DomPDF\ServiceProvider::class,
+
+        //Untuk Barcode
+        Milon\Barcode\BarcodeServiceProvider::class,
+
         // Tambahan reCAPTCHA
         Anhskohbo\NoCaptcha\NoCaptchaServiceProvider::class,
     ])->toArray(),
@@ -98,8 +104,10 @@ return [
     |--------------------------------------------------------------------------
     */
     'aliases' => Facade::defaultAliases()->merge([
-        'NoCaptcha' => Anhskohbo\NoCaptcha\Facades\NoCaptcha::class,
-    ])->toArray(),
-    'Pdf' => Barryvdh\DomPDF\Facade\Pdf::class,
+    'NoCaptcha' => Anhskohbo\NoCaptcha\Facades\NoCaptcha::class,])->toArray(),
+    'PDF' => Barryvdh\DomPDF\Facade\Pdf::class,
 
+    //Untuk Barcode
+    'DNS1D' => Milon\Barcode\Facades\DNS1DFacade::class,
+    'DNS2D' => Milon\Barcode\Facades\DNS2DFacade::class,
 ];
