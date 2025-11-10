@@ -4,9 +4,6 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use App\Models\Kategoris;
-use App\Models\Satuans;
-
 
 class Produks extends Model
 {
@@ -25,13 +22,14 @@ class Produks extends Model
         'kadaluwarsa',
         'kategori_id',
         'satuan_id',
+        'supplier_id',
     ];
 
     protected $casts = [
         'kadaluwarsa' => 'date',
     ];
 
-    // Auto-generate barcode
+    // === AUTO GENERATE BARCODE ===
     protected static function boot()
     {
         parent::boot();
@@ -43,40 +41,36 @@ class Produks extends Model
         });
     }
 
-    private static function generateUniqueBarcode()
-{
-    do {
-        // Generate 12 digit random (EAN-13 butuh 12 data digit + 1 check digit)
-        $base = str_pad(rand(0, 999999999999), 12, '0', STR_PAD_LEFT);
+    public static function generateUniqueBarcode()
+    {
+        do {
+            $base = str_pad(rand(0, 999999999999), 12, '0', STR_PAD_LEFT);
+            $checkDigit = self::calculateEAN13CheckDigit($base);
+            $barcode = $base . $checkDigit;
+        } while (self::where('barcode', $barcode)->exists());
 
-        // Hitung check digit valid
-        $checkDigit = self::calculateEAN13CheckDigit($base);
-
-        // Gabung jadi 13 digit barcode valid
-        $barcode = $base . $checkDigit;
-
-    } while (self::where('barcode', $barcode)->exists());
-
-    return $barcode;
-}
-
-/**
- * Hitung check digit sesuai standar EAN-13
- */
-private static function calculateEAN13CheckDigit($digits)
-{
-    $sum = 0;
-    foreach (str_split($digits) as $i => $d) {
-        $sum += ($i % 2 === 0 ? $d : $d * 3);
+        return $barcode;
     }
-    $mod = $sum % 10;
-    return $mod === 0 ? 0 : 10 - $mod;
-}
 
+    private static function calculateEAN13CheckDigit($digits)
+    {
+        $sum = 0;
+        foreach (str_split($digits) as $i => $d) {
+            $sum += ($i % 2 === 0 ? $d : $d * 3);
+        }
+        $mod = $sum % 10;
+        return $mod === 0 ? 0 : 10 - $mod;
+    }
 
+    // === RELASI ===
     public function kategori()
     {
         return $this->belongsTo(Kategoris::class, 'kategori_id', 'kategori_id');
+    }
+
+    public function supplier()
+    {
+        return $this->belongsTo(Suppliers::class, 'supplier_id', 'supplier_id');
     }
 
     public function satuan()

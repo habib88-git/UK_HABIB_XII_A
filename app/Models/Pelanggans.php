@@ -16,5 +16,29 @@ class Pelanggans extends Model
         'nama_pelanggan',
         'alamat',
         'nomor_telepon',
+        'province_id',  // atau 'province_code' kalau lu simpan kode
+        'city_id',
+        'district_id',
+        'village_id',
     ];
+
+    public function province()
+    {
+        return $this->belongsTo(\Laravolt\Indonesia\Models\Province::class);
+    }
+
+    public function city()
+    {
+        return $this->belongsTo(\Laravolt\Indonesia\Models\City::class);
+    }
+
+    public function district()
+    {
+        return $this->belongsTo(\Laravolt\Indonesia\Models\District::class);
+    }
+
+    public function village()
+    {
+        return $this->belongsTo(\Laravolt\Indonesia\Models\Village::class);
+    }
 }

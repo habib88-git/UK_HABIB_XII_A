@@ -97,6 +97,19 @@
                             </select>
                         </div>
 
+                        <div class="col-md-6 mb-4">
+                            <label for="supplier_id" class="form-label">Supplier</label>
+                            <select name="supplier_id" id="supplier_id" class="form-control" required>
+                                <option value="" disabled>-- Pilih Supplier --</option>
+                                @foreach ($suppliers as $supplier)
+                                    <option value="{{ $supplier->supplier_id }}"
+                                        {{ old('supplier_id', $produk->supplier_id) == $supplier->supplier_id ? 'selected' : '' }}>
+                                        {{ $supplier->nama_supplier }}
+                                    </option>
+                                @endforeach
+                            </select>
+                        </div>
+
                         <div class="col-md-6 mb-3">
                             <label for="photo" class="form-label">Foto Produk</label>
                             @if ($produk->photo)

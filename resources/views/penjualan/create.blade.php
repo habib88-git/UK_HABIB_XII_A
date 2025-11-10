@@ -57,10 +57,15 @@
                                         @endforeach
                                     </select>
                                 </div>
-                                <small class="text-muted">
-                                    <i class="bi bi-info-circle me-1"></i>
-                                    <span id="diskonInfo">Pilih pelanggan untuk mendapatkan diskon</span>
-                                </small>
+                                <div id="diskonInfoBox" class="mt-2 p-3 rounded" style="display: none;">
+                                    <div class="d-flex align-items-center">
+                                        <i class="bi bi-tag-fill text-success me-2 fs-5"></i>
+                                        <div>
+                                            <div class="fw-bold text-success">Diskon Aktif!</div>
+                                            <small class="text-muted">Dapatkan diskon 5% untuk belanja ≥ Rp 100.000</small>
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
 
                             {{-- Input Barcode --}}
@@ -81,34 +86,64 @@
                                 </small>
                             </div>
 
-                            {{-- Pilih Produk (Dropdown) --}}
+                            {{-- Pencarian dan Filter Produk --}}
                             <div class="mb-4">
-                                <label for="produk" class="form-label fw-semibold text-secondary">
-                                    <i class="bi bi-search me-1"></i> Cari Produk Manual
-                                </label>
-                                <div class="nice-box produk-box">
-                                    <select id="produk" class="form-select nice-select">
-                                        <option value="">-- Pilih Produk --</option>
-                                        @foreach ($produks as $produk)
-                                            <option value="{{ $produk->produk_id }}" data-harga="{{ $produk->harga_jual }}"
-                                                data-unit="{{ $produk->satuan->nama_satuan ?? '-' }}"
-                                                data-foto="{{ $produk->photo ? asset('storage/' . $produk->photo) : 'https://via.placeholder.com/80' }}"
-                                                data-stok="{{ $produk->stok ?? 0 }}"
-                                                data-barcode="{{ $produk->barcode ?? '' }}">
-                                                {{ $produk->nama_produk }} ({{ $produk->satuan->nama_satuan ?? '-' }}) -
-                                                Stok: {{ $produk->stok ?? 0 }}
-                                            </option>
-                                        @endforeach
-                                    </select>
+                                <div class="row g-2">
+                                    <div class="col-md-6">
+                                        <label for="searchProduk" class="form-label fw-semibold text-secondary">
+                                            <i class="bi bi-search me-1"></i> Cari Produk
+                                        </label>
+                                        <div class="nice-box input-box">
+                                            <input type="text" id="searchProduk" class="form-control nice-input"
+                                                placeholder="Ketik nama produk...">
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label for="filterKategori" class="form-label fw-semibold text-secondary">
+                                            <i class="bi bi-filter me-1"></i> Filter Kategori
+                                        </label>
+                                        <div class="nice-box">
+                                            <select id="filterKategori" class="form-select nice-select">
+                                                <option value="">Semua Kategori</option>
+                                                @foreach ($kategoris as $kategori)
+                                                    <option value="{{ $kategori->kategori_id }}">{{ $kategori->nama_kategori }}</option>
+                                                @endforeach
+                                            </select>
+                                        </div>
+                                    </div>
                                 </div>
-                                <button type="button" class="btn btn-primary mt-2 px-4 rounded-pill shadow-sm"
-                                    id="addItem">
-                                    <i class="bi bi-plus-lg me-1"></i> Tambah Produk
-                                </button>
                             </div>
 
-                            {{-- Tabel Produk --}}
+                            {{-- Daftar Produk --}}
+                            <div class="mb-4">
+                                <div class="d-flex justify-content-between align-items-center mb-3">
+                                    <label class="form-label fw-semibold text-secondary mb-0">
+                                        <i class="bi bi-list-ul me-1"></i> Daftar Produk
+                                    </label>
+                                    <span class="badge bg-primary" id="produkCount">0 produk</span>
+                                </div>
+
+                                <div class="produk-container" style="max-height: 300px; overflow-y: auto;">
+                                    <div id="produkGrid" class="row g-2">
+                                        <!-- Produk akan ditampilkan di sini -->
+                                    </div>
+                                    <div id="produkEmptyState" class="text-center py-4">
+                                        <i class="bi bi-search text-muted" style="font-size: 3rem;"></i>
+                                        <p class="text-muted mb-0 mt-2">Tidak ada produk ditemukan</p>
+                                        <small class="text-muted">Coba ubah kata kunci pencarian atau filter kategori</small>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {{-- Tabel Produk yang Dipilih --}}
                             <div class="mt-4">
+                                <div class="d-flex justify-content-between align-items-center mb-3">
+                                    <h6 class="fw-semibold text-primary mb-0">
+                                        <i class="bi bi-cart-check me-2"></i> Keranjang Belanja
+                                    </h6>
+                                    <span class="badge bg-success" id="cartCount">0 item</span>
+                                </div>
+
                                 <div class="table-responsive rounded border">
                                     <table class="table table-hover align-middle text-center mb-0">
                                         <thead class="bg-primary text-white">
@@ -129,7 +164,7 @@
                                 <div id="emptyState" class="text-center py-5">
                                     <i class="bi bi-cart-x text-muted" style="font-size: 3rem;"></i>
                                     <p class="text-muted mb-0 mt-2">Belum ada produk dipilih</p>
-                                    <small class="text-muted">Scan barcode atau pilih produk dari dropdown</small>
+                                    <small class="text-muted">Pilih produk dari daftar di atas</small>
                                 </div>
                             </div>
                         </div>
@@ -150,18 +185,24 @@
                                     <span id="subtotalHarga" class="fw-semibold">Rp 0</span>
                                 </div>
                                 <div class="d-flex justify-content-between mb-2" id="diskonSection"
-                                    style="display: none !important;">
-                                    <span class="text-muted">Diskon (<span id="persenDiskon">0%</span>)</span>
-                                    <span id="nominalDiskon" class="fw-semibold text-danger">Rp 0</span>
+                                    style="display: none;">
+                                    <span class="text-muted">
+                                        <span class="badge bg-success me-1">5%</span> Diskon
+                                    </span>
+                                    <span id="nominalDiskon" class="fw-semibold text-danger">- Rp 0</span>
                                 </div>
                                 <hr class="my-2">
                                 <div class="d-flex justify-content-between">
                                     <span class="fw-bold">Total</span>
                                     <span id="totalHarga" class="fw-bold text-success fs-5">Rp 0</span>
                                 </div>
-                                <small class="text-muted d-block mt-2" id="diskonNote" style="display: none;">
-                                    <i class="bi bi-tag-fill me-1"></i> Diskon Rp 5.000 per Rp 100.000
-                                </small>
+                                <div id="diskonNote" class="alert alert-success mt-3 mb-0 py-2 px-3"
+                                    style="display: none;">
+                                    <small class="d-flex align-items-center mb-0">
+                                        <i class="bi bi-check-circle-fill me-2"></i>
+                                        <span>Anda hemat <strong id="diskonHemat">Rp 0</strong>!</span>
+                                    </small>
+                                </div>
                             </div>
 
                             {{-- Metode Pembayaran --}}
@@ -171,8 +212,8 @@
                                 <div class="nice-box metode-box">
                                     <select name="metode" id="metode" class="form-select nice-select" required>
                                         <option value="">-- Pilih Metode --</option>
-                                        <option value="cash">Cash</option>
-                                        <option value="qris">QRIS</option>
+                                        <option value="cash">💵 Cash</option>
+                                        <option value="qris">📱 QRIS</option>
                                     </select>
                                 </div>
                             </div>
@@ -219,7 +260,7 @@
             </div>
         </form>
 
-        {{-- 🔥 MODAL NOTIFIKASI SUKSES - FIXED --}}
+        {{-- 🔥 MODAL NOTIFIKASI SUKSES --}}
         <div class="modal fade" id="successModal" tabindex="-1" aria-hidden="true">
             <div class="modal-dialog modal-dialog-centered">
                 <div class="modal-content border-0 shadow-lg">
@@ -314,7 +355,7 @@
             font-size: 0.75rem;
         }
 
-        #emptyState {
+        #emptyState, #produkEmptyState {
             display: none;
         }
 
@@ -412,8 +453,47 @@
             flex: 1;
         }
 
-        #diskonInfo {
-            font-weight: 500;
+        /* Info Box Diskon */
+        #diskonInfoBox {
+            background: linear-gradient(135deg, #d4edda 0%, #c3e6cb 100%);
+            border: 2px dashed #28a745;
+            animation: slideDown 0.3s ease-out;
+        }
+
+        @keyframes slideDown {
+            from {
+                opacity: 0;
+                transform: translateY(-10px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* Badge Diskon */
+        .badge {
+            font-size: 0.75rem;
+            padding: 0.25rem 0.5rem;
+            font-weight: 600;
+        }
+
+        /* Alert Diskon */
+        #diskonNote {
+            animation: fadeIn 0.3s ease-out;
+            background: linear-gradient(135deg, #d4edda 0%, #c3e6cb 100%) !important;
+            border-left: 4px solid #28a745 !important;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+            }
+
+            to {
+                opacity: 1;
+            }
         }
 
         /* QRIS Section Styles */
@@ -431,7 +511,7 @@
             background: white;
         }
 
-        /* 🔥 FIX MODAL POSITION & Z-INDEX */
+        /* Modal Styles */
         .modal {
             z-index: 9999 !important;
         }
@@ -464,26 +544,83 @@
             letter-spacing: 1px;
         }
 
-        /* Divider styling */
-        .divider {
-            display: flex;
-            align-items: center;
-            text-align: center;
-            margin: 20px 0;
+        /* Produk Card Styles */
+        .produk-card {
+            border: 1px solid #e9ecef;
+            border-radius: 12px;
+            padding: 12px;
+            transition: all 0.3s ease;
+            background: white;
+            height: 100%;
+            cursor: pointer;
         }
 
-        .divider::before,
-        .divider::after {
-            content: '';
-            flex: 1;
-            border-bottom: 1px solid #dee2e6;
+        .produk-card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 6px 15px rgba(0, 0, 0, 0.1);
+            border-color: #0d6efd;
         }
 
-        .divider span {
-            padding: 0 15px;
+        .produk-card.selected {
+            border-color: #0d6efd;
+            background-color: #f0f8ff;
+        }
+
+        .produk-card img {
+            width: 60px;
+            height: 60px;
+            object-fit: cover;
+            border-radius: 8px;
+        }
+
+        .produk-card .produk-nama {
+            font-weight: 600;
+            font-size: 0.9rem;
+            margin-bottom: 4px;
+            color: #333;
+        }
+
+        .produk-card .produk-harga {
+            font-weight: 700;
+            color: #28a745;
+            font-size: 0.9rem;
+        }
+
+        .produk-card .produk-stok {
+            font-size: 0.75rem;
             color: #6c757d;
-            font-size: 14px;
-            font-weight: 500;
+        }
+
+        .produk-card .produk-kategori {
+            font-size: 0.7rem;
+            background: #f8f9fa;
+            color: #495057;
+            padding: 2px 6px;
+            border-radius: 4px;
+            display: inline-block;
+        }
+
+        .produk-container {
+            scrollbar-width: thin;
+            scrollbar-color: #c1c1c1 #f1f1f1;
+        }
+
+        .produk-container::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .produk-container::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 10px;
+        }
+
+        .produk-container::-webkit-scrollbar-thumb {
+            background: #c1c1c1;
+            border-radius: 10px;
+        }
+
+        .produk-container::-webkit-scrollbar-thumb:hover {
+            background: #a8a8a8;
         }
 
         @media (max-width: 768px) {
@@ -500,6 +637,15 @@
             #qrisBarcodeContainer img {
                 max-width: 120px;
             }
+
+            .produk-card {
+                padding: 8px;
+            }
+
+            .produk-card img {
+                width: 50px;
+                height: 50px;
+            }
         }
     </style>
 
@@ -507,31 +653,36 @@
     <script>
         // 🔥 VARIABEL UTAMA
         let produkList = document.getElementById('produkList');
-        let addItem = document.getElementById('addItem');
-        let produkSelect = document.getElementById('produk');
+        let produkGrid = document.getElementById('produkGrid');
         let barcodeInput = document.getElementById('barcodeInput');
         let clearBarcodeBtn = document.getElementById('clearBarcode');
         let pelangganSelect = document.getElementById('pelanggan_id');
         let metodeSelect = document.getElementById('metode');
         let subtotalHargaSpan = document.getElementById('subtotalHarga');
-        let persenDiskonSpan = document.getElementById('persenDiskon');
         let nominalDiskonSpan = document.getElementById('nominalDiskon');
         let totalHargaSpan = document.getElementById('totalHarga');
         let jumlahBayarInput = document.getElementById('jumlah_bayar');
         let kembalianInput = document.getElementById('kembalian');
         let emptyState = document.getElementById('emptyState');
+        let produkEmptyState = document.getElementById('produkEmptyState');
         let diskonSection = document.getElementById('diskonSection');
         let diskonNote = document.getElementById('diskonNote');
-        let diskonInfo = document.getElementById('diskonInfo');
+        let diskonInfoBox = document.getElementById('diskonInfoBox');
+        let diskonHemat = document.getElementById('diskonHemat');
         let cashSection = document.getElementById('cashSection');
         let kembalianSection = document.getElementById('kembalianSection');
         let qrisSection = document.getElementById('qrisSection');
         let qrisBarcodeContainer = document.getElementById('qrisBarcodeContainer');
         let qrisAmountDisplay = document.getElementById('qrisAmountDisplay');
+        let searchProdukInput = document.getElementById('searchProduk');
+        let filterKategoriSelect = document.getElementById('filterKategori');
+        let produkCountSpan = document.getElementById('produkCount');
+        let cartCountSpan = document.getElementById('cartCount');
 
         // 🔥 DATA PRODUK DARI BACKEND
         let produkData = {};
         let produkById = {};
+        let produkListData = [];
         @foreach ($produks as $produk)
             produkData["{{ $produk->barcode }}"] = {
                 id: "{{ $produk->produk_id }}",
@@ -540,7 +691,9 @@
                 satuan: "{{ $produk->satuan->nama_satuan ?? '-' }}",
                 foto: "{{ $produk->photo ? asset('storage/' . $produk->photo) : 'https://via.placeholder.com/80' }}",
                 stok: {{ $produk->stok ?? 0 }},
-                barcode: "{{ $produk->barcode ?? '' }}"
+                barcode: "{{ $produk->barcode ?? '' }}",
+                kategori_id: "{{ $produk->kategori_id ?? '' }}",
+                kategori_nama: "{{ $produk->kategori->nama_kategori ?? 'Tanpa Kategori' }}"
             };
             produkById["{{ $produk->produk_id }}"] = {
                 id: "{{ $produk->produk_id }}",
@@ -549,8 +702,21 @@
                 satuan: "{{ $produk->satuan->nama_satuan ?? '-' }}",
                 foto: "{{ $produk->photo ? asset('storage/' . $produk->photo) : 'https://via.placeholder.com/80' }}",
                 stok: {{ $produk->stok ?? 0 }},
-                barcode: "{{ $produk->barcode ?? '' }}"
+                barcode: "{{ $produk->barcode ?? '' }}",
+                kategori_id: "{{ $produk->kategori_id ?? '' }}",
+                kategori_nama: "{{ $produk->kategori->nama_kategori ?? 'Tanpa Kategori' }}"
             };
+            produkListData.push({
+                id: "{{ $produk->produk_id }}",
+                nama: "{{ $produk->nama_produk }}",
+                harga: {{ $produk->harga_jual }},
+                satuan: "{{ $produk->satuan->nama_satuan ?? '-' }}",
+                foto: "{{ $produk->photo ? asset('storage/' . $produk->photo) : 'https://via.placeholder.com/80' }}",
+                stok: {{ $produk->stok ?? 0 }},
+                barcode: "{{ $produk->barcode ?? '' }}",
+                kategori_id: "{{ $produk->kategori_id ?? '' }}",
+                kategori_nama: "{{ $produk->kategori->nama_kategori ?? 'Tanpa Kategori' }}"
+            });
         @endforeach
 
         // 🔥 KONSTANTA QRIS
@@ -598,6 +764,74 @@
             }
             let hex = (crc & 0xFFFF).toString(16).toUpperCase();
             return hex.length === 3 ? '0' + hex : hex.padStart(4, '0');
+        }
+
+        // 🔥 FUNGSI PENCARIAN DAN FILTER PRODUK
+
+        // Filter dan tampilkan produk
+        function filterAndDisplayProduk() {
+            const searchTerm = searchProdukInput.value.toLowerCase();
+            const kategoriId = filterKategoriSelect.value;
+
+            let filteredProduk = produkListData.filter(produk => {
+                // Filter berdasarkan pencarian
+                const matchSearch = produk.nama.toLowerCase().includes(searchTerm) ||
+                                  produk.barcode.includes(searchTerm);
+
+                // Filter berdasarkan kategori
+                const matchKategori = !kategoriId || produk.kategori_id == kategoriId;
+
+                return matchSearch && matchKategori;
+            });
+
+            renderProdukGrid(filteredProduk);
+        }
+
+        // Render grid produk
+        function renderProdukGrid(produkArray) {
+            produkGrid.innerHTML = '';
+
+            if (produkArray.length === 0) {
+                produkEmptyState.style.display = 'block';
+                produkCountSpan.textContent = '0 produk';
+                return;
+            }
+
+            produkEmptyState.style.display = 'none';
+            produkCountSpan.textContent = produkArray.length + ' produk';
+
+            produkArray.forEach(produk => {
+                const produkCard = document.createElement('div');
+                produkCard.className = 'col-6 col-md-4 col-lg-3';
+                produkCard.innerHTML = `
+                    <div class="produk-card" data-produk-id="${produk.id}">
+                        <div class="d-flex align-items-start mb-2">
+                            <img src="${produk.foto}" alt="${produk.nama}" class="me-2">
+                            <div class="flex-grow-1">
+                                <div class="produk-nama">${produk.nama}</div>
+                                <div class="produk-harga">${formatRupiah(produk.harga)}</div>
+                            </div>
+                        </div>
+                        <div class="d-flex justify-content-between align-items-center">
+                            <span class="produk-stok">Stok: ${produk.stok}</span>
+                            <span class="produk-kategori">${produk.kategori_nama}</span>
+                        </div>
+                    </div>
+                `;
+
+                produkCard.addEventListener('click', function() {
+                    addProduct(produk);
+
+                    // Animasi feedback
+                    const card = this.querySelector('.produk-card');
+                    card.classList.add('selected');
+                    setTimeout(() => {
+                        card.classList.remove('selected');
+                    }, 500);
+                });
+
+                produkGrid.appendChild(produkCard);
+            });
         }
 
         // 🔥 FUNGSI TAMBAH PRODUK (UNIVERSAL)
@@ -675,6 +909,7 @@
             // Update UI
             toggleEmptyState();
             hitungTotal();
+            updateCartCount();
             return true;
         }
 
@@ -692,72 +927,12 @@
             }
 
             if (addProduct(produk)) {
-                // Reset input barcode
                 barcodeInput.value = '';
                 barcodeInput.focus();
             }
         }
 
-        // 🔥 FUNGSI DROPDOWN PRODUK
-
-        // Tambah produk dari dropdown
-        function addProductFromDropdown() {
-            let option = produkSelect.options[produkSelect.selectedIndex];
-
-            if (!option.value) {
-                alert('⚠️ Pilih produk terlebih dahulu!');
-                return;
-            }
-
-            let produkId = option.value;
-            let produk = produkById[produkId];
-
-            if (addProduct(produk)) {
-                // Reset dropdown
-                produkSelect.value = '';
-                // Tetap fokus ke barcode untuk workflow yang lancar
-                barcodeInput.focus();
-            }
-        }
-
-        // 🔥 EVENT LISTENERS
-
-        // Event listener untuk input barcode
-        barcodeInput.addEventListener('input', function(e) {
-            // Auto-submit ketika panjang barcode cukup (biasanya 8-13 digit)
-            if (this.value.length >= 8) {
-                addProductByBarcode(this.value);
-            }
-        });
-
-        // Event listener untuk tombol clear barcode
-        clearBarcodeBtn.addEventListener('click', function() {
-            barcodeInput.value = '';
-            barcodeInput.focus();
-        });
-
-        // Event listener untuk enter di input barcode
-        barcodeInput.addEventListener('keypress', function(e) {
-            if (e.key === 'Enter') {
-                e.preventDefault();
-                if (this.value.length > 0) {
-                    addProductByBarcode(this.value);
-                }
-            }
-        });
-
-        // Event listener untuk tombol tambah produk dari dropdown
-        addItem.addEventListener('click', addProductFromDropdown);
-
-        // Event listener untuk enter di dropdown produk
-        produkSelect.addEventListener('keypress', function(e) {
-            if (e.key === 'Enter') {
-                e.preventDefault();
-                addProductFromDropdown();
-            }
-        });
-
-        // 🔥 FUNGSI YANG SUDAH ADA (dengan sedikit modifikasi)
+        // 🔥 FUNGSI YANG SUDAH ADA
 
         // Toggle input pembayaran
         function togglePaymentInputs() {
@@ -809,13 +984,9 @@
         // Update info diskon
         function updateDiskonInfo() {
             if (isPelangganTerdaftar()) {
-                diskonInfo.innerHTML = '<span class="text-success fw-semibold">✓ Pelanggan mendapat diskon</span>';
-                diskonSection.style.display = 'flex !important';
-                diskonNote.style.display = 'block';
+                diskonInfoBox.style.display = 'block';
             } else {
-                diskonInfo.innerHTML = 'Pilih pelanggan untuk mendapatkan diskon';
-                diskonSection.style.display = 'none !important';
-                diskonNote.style.display = 'none';
+                diskonInfoBox.style.display = 'none';
             }
         }
 
@@ -824,7 +995,13 @@
             emptyState.style.display = produkList.children.length === 0 ? 'block' : 'none';
         }
 
-        // Hitung total
+        // Update cart count
+        function updateCartCount() {
+            const itemCount = produkList.children.length;
+            cartCountSpan.textContent = itemCount + ' item';
+        }
+
+        // 🔥 HITUNG TOTAL DENGAN DISKON 5%
         function hitungTotal() {
             let subtotal = 0;
 
@@ -834,23 +1011,19 @@
 
             let nominalDiskon = 0;
 
-            if (isPelangganTerdaftar()) {
-                let kelipatan100rb = Math.floor(subtotal / 100000);
-                nominalDiskon = kelipatan100rb * 5000;
-                nominalDiskon = Math.min(nominalDiskon, subtotal);
-
-                diskonSection.style.display = 'flex !important';
+            // Diskon 5% jika pelanggan terdaftar DAN belanja >= 100.000
+            if (isPelangganTerdaftar() && subtotal >= 100000) {
+                nominalDiskon = Math.floor(subtotal * 0.05); // 5% dari subtotal
+                diskonSection.style.display = 'flex';
                 diskonNote.style.display = 'block';
+                diskonHemat.innerText = formatRupiah(nominalDiskon);
             } else {
-                diskonSection.style.display = 'none !important';
+                diskonSection.style.display = 'none';
                 diskonNote.style.display = 'none';
             }
 
-            let persenDiskon = subtotal > 0 ? ((nominalDiskon / subtotal) * 100).toFixed(1) : 0;
-
             subtotalHargaSpan.innerText = formatRupiah(subtotal);
-            persenDiskonSpan.innerText = persenDiskon + '%';
-            nominalDiskonSpan.innerText = formatRupiah(nominalDiskon);
+            nominalDiskonSpan.innerText = '- ' + formatRupiah(nominalDiskon);
 
             let totalSetelahDiskon = subtotal - nominalDiskon;
             totalHargaSpan.innerText = formatRupiah(totalSetelahDiskon);
@@ -879,7 +1052,36 @@
             }
         }
 
-        // 🔥 EVENT LISTENERS LAINNYA
+        // 🔥 EVENT LISTENERS
+
+        // Event listener untuk input barcode
+        barcodeInput.addEventListener('input', function(e) {
+            if (this.value.length >= 8) {
+                addProductByBarcode(this.value);
+            }
+        });
+
+        // Event listener untuk tombol clear barcode
+        clearBarcodeBtn.addEventListener('click', function() {
+            barcodeInput.value = '';
+            barcodeInput.focus();
+        });
+
+        // Event listener untuk enter di input barcode
+        barcodeInput.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                if (this.value.length > 0) {
+                    addProductByBarcode(this.value);
+                }
+            }
+        });
+
+        // Event listener untuk pencarian produk
+        searchProdukInput.addEventListener('input', filterAndDisplayProduk);
+
+        // Event listener untuk filter kategori
+        filterKategoriSelect.addEventListener('change', filterAndDisplayProduk);
 
         // Event listener untuk metode pembayaran
         metodeSelect.addEventListener('change', togglePaymentInputs);
@@ -930,6 +1132,7 @@
                 button.closest('tr').remove();
                 toggleEmptyState();
                 hitungTotal();
+                updateCartCount();
             }
         });
 
@@ -960,7 +1163,7 @@
             }
         });
 
-        // 🔥 MODAL HANDLING (sama seperti sebelumnya)
+        // 🔥 MODAL HANDLING
         @if (session('success') && session('penjualan_id'))
             document.addEventListener('DOMContentLoaded', function() {
                 let penjualanId = {{ session('penjualan_id') }};
@@ -1014,16 +1217,19 @@
         // Reset form
         function resetForm() {
             pelangganSelect.value = '';
-            produkSelect.value = '';
             metodeSelect.value = '';
             jumlahBayarInput.value = '';
             kembalianInput.value = '';
             produkList.innerHTML = '';
             barcodeInput.value = '';
+            searchProdukInput.value = '';
+            filterKategoriSelect.value = '';
             updateDiskonInfo();
             toggleEmptyState();
             hitungTotal();
             togglePaymentInputs();
+            filterAndDisplayProduk();
+            updateCartCount();
             barcodeInput.focus();
         }
 
@@ -1033,7 +1239,9 @@
             toggleEmptyState();
             hitungTotal();
             togglePaymentInputs();
-            barcodeInput.focus(); // Fokus ke input barcode saat halaman dimuat
+            filterAndDisplayProduk();
+            updateCartCount();
+            barcodeInput.focus();
         });
     </script>
 @endsection

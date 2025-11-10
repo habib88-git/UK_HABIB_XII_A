@@ -46,6 +46,7 @@
                                     <th>Nama Produk</th>
                                     <th>Kategori</th>
                                     <th>Satuan</th>
+                                    <th>Supplier</th>
                                     <th>Harga Beli</th>
                                     <th>Harga Jual</th>
                                     <th>Stok</th>
@@ -75,6 +76,7 @@
                                         <td>{{ $produk->nama_produk }}</td>
                                         <td>{{ $produk->kategori->nama_kategori ?? '-' }}</td>
                                         <td>{{ $produk->satuan->nama_satuan ?? '-' }}</td>
+                                        <td>{{ $produk->supplier->nama_supplier ?? '-' }}</td>
                                         <td>Rp {{ number_format($produk->harga_beli, 0, ',', '.') }}</td>
                                         <td>Rp {{ number_format($produk->harga_jual, 0, ',', '.') }}</td>
                                         <td class="text-center">

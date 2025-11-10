@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use App\Models\Produks;
 
 class Suppliers extends Model
 {
@@ -17,4 +18,9 @@ class Suppliers extends Model
         'alamat',
         'no_telp',
     ];
+
+    public function produks()
+    {
+        return $this->hasMany(Produks::class, 'supplier_id', 'supplier_id');
+    }
 }

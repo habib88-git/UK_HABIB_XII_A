@@ -64,6 +64,7 @@ Route::middleware(['auth'])->group(function () {
     Route::middleware('admin')->group(function () {
         Route::get('/pelanggan/{id}/edit', [PelangganController::class, 'edit'])->name('pelanggan.edit');
         Route::put('/pelanggan/{id}', [PelangganController::class, 'update'])->name('pelanggan.update');
+        Route::get('/pelanggan/{id}', [PelangganController::class, 'show'])->name('pelanggan.show');
         Route::delete('/pelanggan/{id}', [PelangganController::class, 'destroy'])->name('pelanggan.destroy');
     });
 });
@@ -114,4 +115,8 @@ Route::prefix('laporan')->middleware('admin')->group(function () {
     Route::get('/', [LaporanController::class, 'index'])->name('laporan.index');
     Route::get('/cetak', [LaporanController::class, 'cetakPdf'])->name('laporan.cetak');
     Route::get('/{id}/struk', [LaporanController::class, 'struk'])->name('laporan.struk');
+});
+
+Route::get('api/cities/{province_id}', function ($province_id) {
+    return \Laravolt\Indonesia\Models\City::where('province_id', $province_id)->pluck('name', 'id');
 });

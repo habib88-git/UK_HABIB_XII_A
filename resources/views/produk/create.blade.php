@@ -33,12 +33,12 @@
 
                     <div class="row">
                         <div class="col-md-6 mb-3">
-                            <label for="barcode" class="form-label">Barcode <small class="text-muted">(Opsional - Auto
-                                    Generate)</small></label>
+                            <label for="barcode" class="form-label">Barcode</label>
                             <input type="text" id="barcode" name="barcode" class="form-control"
-                                value="{{ old('barcode') }}" maxlength="50" placeholder="Kosongkan untuk generate otomatis">
-                            <small class="text-muted">Jika dikosongkan, barcode akan di-generate otomatis</small>
+                                placeholder="Akan digenerate otomatis saat disimpan" readonly>
+                            <small class="text-muted">Barcode EAN-13 akan digenerate otomatis</small>
                         </div>
+
 
                         <div class="col-md-6 mb-3">
                             <label for="nama_produk" class="form-label">Nama Produk</label>
@@ -91,6 +91,19 @@
                                     <option value="{{ $satuan->satuan_id }}"
                                         {{ old('satuan_id') == $satuan->satuan_id ? 'selected' : '' }}>
                                         {{ $satuan->nama_satuan }}
+                                    </option>
+                                @endforeach
+                            </select>
+                        </div>
+
+                        <div class="col-md-6 mb-4">
+                            <label for="supplier_id" class="form-label">Supplier</label>
+                            <select id="supplier_id" name="supplier_id" class="form-control" required>
+                                <option disabled selected>-- Pilih Supplier --</option>
+                                @foreach ($suppliers as $supplier)
+                                    <option value="{{ $supplier->supplier_id }}"
+                                        {{ old('supplier_id') == $supplier->supplier_id ? 'selected' : '' }}>
+                                        {{ $supplier->nama_supplier }}
                                     </option>
                                 @endforeach
                             </select>

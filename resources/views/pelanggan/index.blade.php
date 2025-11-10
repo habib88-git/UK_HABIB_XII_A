@@ -45,7 +45,7 @@
                                     <th>Telepon</th>
                                     {{-- Kolom aksi hanya untuk admin --}}
                                     @if (auth()->user()->role === 'admin')
-                                        <th style="width: 15%">Aksi</th>
+                                        <th style="width: 20%">Aksi</th>
                                     @endif
                                 </tr>
                             </thead>
@@ -60,12 +60,21 @@
                                         {{-- Tombol aksi hanya muncul untuk admin --}}
                                         @if (auth()->user()->role === 'admin')
                                             <td class="text-center">
+                                                {{-- Tombol Lihat --}}
+                                                <a href="{{ route('pelanggan.show', $p->pelanggan_id) }}"
+                                                    class="btn btn-sm btn-outline-info" data-toggle="tooltip"
+                                                    title="Lihat Detail">
+                                                    <i class="fas fa-eye"></i>
+                                                </a>
+
+                                                {{-- Tombol Edit --}}
                                                 <a href="{{ route('pelanggan.edit', $p->pelanggan_id) }}"
                                                     class="btn btn-sm btn-outline-warning" data-toggle="tooltip"
                                                     title="Edit Pelanggan">
                                                     <i class="fas fa-edit"></i>
                                                 </a>
 
+                                                {{-- Tombol Hapus --}}
                                                 <form action="{{ route('pelanggan.destroy', $p->pelanggan_id) }}"
                                                     method="POST" style="display:inline-block;"
                                                     onsubmit="return confirm('Yakin ingin menghapus pelanggan ini?')">
