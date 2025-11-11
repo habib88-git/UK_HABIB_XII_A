@@ -16,7 +16,7 @@ class Pelanggans extends Model
         'nama_pelanggan',
         'alamat',
         'nomor_telepon',
-        'province_id',  // atau 'province_code' kalau lu simpan kode
+        'province_id',  
         'city_id',
         'district_id',
         'village_id',
