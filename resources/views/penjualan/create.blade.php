@@ -50,7 +50,7 @@
                                     <i class="bi bi-person-circle me-1"></i> Pelanggan (opsional)
                                 </label>
                                 <div class="nice-box pelanggan-box">
-                                    <select name="pelanggan_id" id="pelanggan_id" class="form-select nice-select">
+                                    <select name="pelanggan_id" id="pelanggan_id">
                                         <option value="">-- Umum (Tanpa Diskon) --</option>
                                         @foreach ($pelanggans as $p)
                                             <option value="{{ $p->pelanggan_id }}">{{ $p->nama_pelanggan }}</option>
@@ -74,7 +74,7 @@
                                     <i class="bi bi-upc-scan me-1"></i> Scan Barcode
                                 </label>
                                 <div class="nice-box input-box d-flex align-items-center">
-                                    <input type="text" id="barcodeInput" class="form-control nice-input"
+                                    <input type="text" id="barcodeInput" class="nice-input"
                                         placeholder="Scan atau ketik barcode produk" autocomplete="off">
                                     <button type="button" class="btn btn-outline-secondary ms-2" id="clearBarcode">
                                         <i class="bi bi-x-lg"></i>
@@ -94,7 +94,7 @@
                                             <i class="bi bi-search me-1"></i> Cari Produk
                                         </label>
                                         <div class="nice-box input-box">
-                                            <input type="text" id="searchProduk" class="form-control nice-input"
+                                            <input type="text" id="searchProduk" class="nice-input"
                                                 placeholder="Ketik nama produk...">
                                         </div>
                                     </div>
@@ -103,7 +103,7 @@
                                             <i class="bi bi-filter me-1"></i> Filter Kategori
                                         </label>
                                         <div class="nice-box">
-                                            <select id="filterKategori" class="form-select nice-select">
+                                            <select id="filterKategori">
                                                 <option value="">Semua Kategori</option>
                                                 @foreach ($kategoris as $kategori)
                                                     <option value="{{ $kategori->kategori_id }}">{{ $kategori->nama_kategori }}</option>
@@ -210,7 +210,7 @@
                                 <label for="metode" class="form-label fw-semibold text-secondary">Metode
                                     Pembayaran</label>
                                 <div class="nice-box metode-box">
-                                    <select name="metode" id="metode" class="form-select nice-select" required>
+                                    <select name="metode" id="metode" required>
                                         <option value="">-- Pilih Metode --</option>
                                         <option value="cash">💵 Cash</option>
                                         <option value="qris">📱 QRIS</option>
@@ -239,7 +239,7 @@
                                     Bayar</label>
                                 <div class="nice-box input-box">
                                     <input type="number" name="jumlah_bayar" id="jumlah_bayar" min="0"
-                                        class="form-control nice-input" required>
+                                        class="nice-input" required>
                                 </div>
                             </div>
 
@@ -247,7 +247,7 @@
                                 <label class="form-label fw-semibold text-secondary">Kembalian</label>
                                 <div class="nice-box input-box">
                                     <input type="text" id="kembalian"
-                                        class="form-control nice-input fw-bold text-primary" readonly>
+                                        class="nice-input fw-bold text-primary" readonly>
                                 </div>
                             </div>
 
@@ -359,6 +359,7 @@
             display: none;
         }
 
+        /* 🔥 STYLING UTAMA UNTUK SEMUA ELEMEN INPUT DAN SELECT */
         .nice-box {
             background-color: #fff;
             border: 1px solid #dee2e6;
@@ -379,7 +380,8 @@
             box-shadow: 0 0 0 3px rgba(13, 110, 253, 0.15);
         }
 
-        .nice-select {
+        /* 🔥 STYLING UNTUK SEMUA SELECT */
+        .nice-box select {
             background-color: transparent !important;
             box-shadow: none !important;
             height: 42px;
@@ -387,12 +389,17 @@
             border: none !important;
             padding-left: 0;
             padding-right: 0;
+            width: 100%;
+            outline: none;
+            cursor: pointer;
+            color: #495057;
         }
 
-        .nice-select:focus {
+        .nice-box select:focus {
             outline: none !important;
         }
 
+        /* 🔥 STYLING UNTUK SEMUA INPUT */
         .nice-input {
             background-color: transparent !important;
             box-shadow: none !important;
@@ -400,6 +407,8 @@
             padding: 8px 0;
             height: 42px;
             font-size: 15px;
+            width: 100%;
+            outline: none;
         }
 
         .nice-input:focus {
@@ -446,9 +455,9 @@
             align-items: center;
         }
 
-        .pelanggan-box .nice-select,
-        .produk-box .nice-select,
-        .metode-box .nice-select,
+        .pelanggan-box select,
+        .produk-box select,
+        .metode-box select,
         .input-box .nice-input {
             flex: 1;
         }
@@ -623,12 +632,25 @@
             background: #a8a8a8;
         }
 
+        /* Style untuk jumlah input di tabel */
+        .table .form-control {
+            border: 1px solid #dee2e6;
+            border-radius: 6px;
+            padding: 4px 8px;
+            font-size: 0.875rem;
+        }
+
+        .table .form-control:focus {
+            border-color: #0d6efd;
+            box-shadow: 0 0 0 2px rgba(13, 110, 253, 0.15);
+        }
+
         @media (max-width: 768px) {
             .nice-box {
                 padding: 6px 12px;
             }
 
-            .nice-select,
+            .nice-box select,
             .nice-input {
                 height: 38px;
                 font-size: 14px;
