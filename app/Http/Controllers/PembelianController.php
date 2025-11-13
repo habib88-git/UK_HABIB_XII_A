@@ -41,59 +41,66 @@ class PembelianController extends Controller
     public function store(Request $request)
     {
         $request->validate([
-            'tanggal' => 'required|date',
-            'supplier_id' => 'nullable|exists:tbl_suppliers,supplier_id',
-            'produk_id.*' => 'required|exists:tbl_produks,produk_id',
-            'jumlah.*' => 'required|integer|min:1',
-            'harga_beli.*' => 'required|numeric|min:0',
+        'tanggal' => 'required|date',
+        'produk_id.*' => 'required|exists:tbl_produks,produk_id',
+        'jumlah.*' => 'required|integer|min:1',
+        'harga_beli.*' => 'required|numeric|min:0',
+        'supplier_id.*' => 'nullable|exists:tbl_suppliers,supplier_id', // Ubah array
+    ]);
+
+    DB::beginTransaction();
+
+    try {
+        // Ambil supplier_id pertama yang valid
+        $supplierId = null;
+        foreach ($request->supplier_id as $sid) {
+            if ($sid) {
+                $supplierId = $sid;
+                break;
+            }
+        }
+
+        // Hitung total
+        $total = 0;
+        foreach ($request->jumlah as $i => $qty) {
+            // Pastikan harga_beli adalah numeric
+            $hargaBeli = (float) str_replace(['.', ','], ['', '.'], $request->harga_beli[$i]);
+            $total += $qty * $hargaBeli;
+        }
+
+        // Simpan pembelian
+        $pembelian = Pembelians::create([
+            'tanggal' => $request->tanggal,
+            'supplier_id' => $supplierId,
+            'user_id' => Auth::id() ?? 1,
+            'total_harga' => $total,
         ]);
 
-        DB::beginTransaction();
+        // Loop produk
+        foreach ($request->produk_id as $i => $produkId) {
+            $jumlah = $request->jumlah[$i];
+            $hargaBeli = (float) str_replace(['.', ','], ['', '.'], $request->harga_beli[$i]);
+            $subtotal = $jumlah * $hargaBeli;
 
-        try {
-            // Hitung total
-            $total = 0;
-            foreach ($request->jumlah as $i => $qty) {
-                $total += $qty * $request->harga_beli[$i];
-            }
+            $produk = Produks::findOrFail($produkId);
+            $produk->stok += $jumlah;
+            $produk->save();
 
-            // Simpan pembelian
-            $pembelian = Pembelians::create([
-                'tanggal' => $request->tanggal,
-                'supplier_id' => $request->supplier_id,
-                'user_id' => Auth::id() ?? 1, // Gunakan user yang login atau default 1
-                'total_harga' => $total,
+            DetailPembelians::create([
+                'pembelian_id' => $pembelian->pembelian_id,
+                'produk_id' => $produkId,
+                'jumlah' => $jumlah,
+                'harga_beli' => $hargaBeli,
+                'subtotal' => $subtotal,
             ]);
+        }
 
-            // Loop produk dan simpan detail
-            foreach ($request->produk_id as $i => $produkId) {
-                $jumlah = $request->jumlah[$i];
-                $hargaBeli = $request->harga_beli[$i];
-                $subtotal = $jumlah * $hargaBeli;
-
-                // Ambil produk untuk update stok
-                $produk = Produks::findOrFail($produkId);
-
-                // Update stok produk
-                $produk->stok += $jumlah;
-                $produk->save();
-
-                // Simpan detail pembelian
-                DetailPembelians::create([
-                    'pembelian_id' => $pembelian->pembelian_id,
-                    'produk_id' => $produkId,
-                    'jumlah' => $jumlah,
-                    'harga_beli' => $hargaBeli,
-                    'subtotal' => $subtotal,
-                ]);
-            }
-
-            DB::commit();
-            return redirect()->route('pembelian.index')->with('success', 'Pembelian berhasil disimpan dan stok produk telah diperbarui');
+        DB::commit();
+        return redirect()->route('pembelian.index')->with('success', 'Pembelian berhasil disimpan');
 
         } catch (\Exception $e) {
             DB::rollback();
-            return redirect()->back()->withInput()->with('error', 'Terjadi kesalahan: ' . $e->getMessage());
+            return redirect()->back()->withInput()->withErrors(['error' => $e->getMessage()]);
         }
     }
 

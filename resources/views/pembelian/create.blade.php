@@ -52,6 +52,7 @@
                                 <i class="fas fa-calendar-day me-1 text-primary"></i> Tanggal Pembelian
                             </label>
                             <input type="datetime-local" name="tanggal" id="tanggalInput" class="form-control" required>
+                            <small class="text-muted">Format: Tanggal dan Waktu</small>
                         </div>
                         <div class="col-md-6">
                             <label class="form-label fw-semibold">
@@ -116,15 +117,11 @@
                                                 readonly placeholder="-"></td>
                                         <td><input type="number" name="jumlah[]" class="form-control jumlah text-end"
                                                 value="1" min="1" required></td>
-                                        <td>
-                                            <input type="text" name="harga_beli[]"
+                                        <td><input type="text" name="harga_beli[]"
                                                 class="form-control hargaBeli text-end bg-light" value="0" readonly
-                                                placeholder="0">
-                                        </td>
-                                        <td>
-                                            <input type="text" class="form-control subtotal text-end bg-light" readonly
-                                                placeholder="0">
-                                        </td>
+                                                placeholder="0"></td>
+                                        <td><input type="text" class="form-control subtotal text-end bg-light" readonly
+                                                placeholder="0"></td>
                                         <td class="text-center">
                                             <button type="button" class="btn btn-outline-danger btn-sm removeRow">
                                                 <i class="fas fa-trash"></i>
@@ -153,7 +150,7 @@
                         <a href="{{ route('pembelian.index') }}" class="btn btn-outline-secondary">
                             <i class="fas fa-arrow-left me-2"></i> Kembali
                         </a>
-                        <button type="submit" class="btn btn-success px-4">
+                        <button type="submit" class="btn btn-success px-4" id="btnSubmit">
                             <i class="fas fa-save me-2"></i> Simpan Pembelian
                         </button>
                     </div>
@@ -165,29 +162,27 @@
     {{-- Script --}}
     <script>
         document.addEventListener("DOMContentLoaded", function() {
-            // Format angka ke format Indonesia dengan titik sebagai pemisah ribuan
+            // === Format angka ===
             function formatNumber(num) {
                 return new Intl.NumberFormat('id-ID').format(num);
             }
 
-            // Parse format number kembali ke angka
             function parseFormattedNumber(str) {
                 if (!str) return 0;
                 return parseFloat(str.toString().replace(/\./g, '').replace(/,/g, ''));
             }
 
-            // Set tanggal dan waktu sekarang otomatis
+            // === Set tanggal & waktu otomatis (jam lokal user, update tiap detik) ===
             function setCurrentDateTime() {
                 const now = new Date();
-                const year = now.getFullYear();
-                const month = String(now.getMonth() + 1).padStart(2, '0');
-                const day = String(now.getDate()).padStart(2, '0');
-                const hours = String(now.getHours()).padStart(2, '0');
-                const minutes = String(now.getMinutes()).padStart(2, '0');
 
-                const datetimeLocal = `${year}-${month}-${day}T${hours}:${minutes}`;
-                document.getElementById('tanggalInput').value = datetimeLocal;
+                // Untuk input datetime-local (format lokal)
+                const local = new Date(now.getTime() - now.getTimezoneOffset() * 60000);
+                const datetimeLocal = local.toISOString().slice(0, 16);
+                const tanggalInput = document.getElementById('tanggalInput');
+                tanggalInput.value = datetimeLocal;
 
+                // Untuk tampilan realtime
                 const options = {
                     weekday: 'long',
                     year: 'numeric',
@@ -201,94 +196,65 @@
             }
 
             setCurrentDateTime();
+            setInterval(setCurrentDateTime, 1000);
 
+            // === Hitung subtotal & total ===
             function hitungSubtotal(row) {
                 let jumlah = parseFloat(row.querySelector(".jumlah").value) || 0;
-                let hargaInput = row.querySelector(".hargaBeli");
-                let harga = parseFormattedNumber(hargaInput.value) || 0;
+                let harga = parseFormattedNumber(row.querySelector(".hargaBeli").value) || 0;
                 let subtotal = jumlah * harga;
-
                 row.querySelector(".subtotal").value = formatNumber(subtotal);
                 return subtotal;
             }
 
             function hitungTotal() {
                 let total = 0;
-                document.querySelectorAll("#produkTable tbody tr").forEach(row => {
-                    total += hitungSubtotal(row);
-                });
+                document.querySelectorAll("#produkTable tbody tr").forEach(row => total += hitungSubtotal(row));
                 document.getElementById("totalHarga").textContent = formatNumber(total);
             }
 
-            // Event ketika produk dipilih
+            // === Event produk dipilih ===
             document.addEventListener("change", function(e) {
                 if (e.target.classList.contains("produkSelect")) {
-                    let selectedOption = e.target.options[e.target.selectedIndex];
+                    let selected = e.target.selectedOptions[0];
                     let row = e.target.closest("tr");
 
-                    if (selectedOption.value) {
-                        // Ambil data dari option
-                        let harga = selectedOption.getAttribute("data-harga") || 0;
-                        let kategori = selectedOption.getAttribute("data-kategori") || '-';
-                        let satuan = selectedOption.getAttribute("data-satuan") || '-';
-                        let supplierId = selectedOption.getAttribute("data-supplier-id") || '';
-                        let supplierNama = selectedOption.getAttribute("data-supplier-nama") || '-';
-
-                        // Set nilai dengan format
-                        row.querySelector(".hargaBeli").value = formatNumber(harga);
-                        row.querySelector(".kategoriNama").value = kategori;
-                        row.querySelector(".satuanNama").value = satuan;
-                        row.querySelector(".supplierNama").value = supplierNama;
-                        row.querySelector(".supplierId").value = supplierId;
+                    if (selected.value) {
+                        row.querySelector(".hargaBeli").value = formatNumber(selected.dataset.harga || 0);
+                        row.querySelector(".kategoriNama").value = selected.dataset.kategori || '-';
+                        row.querySelector(".satuanNama").value = selected.dataset.satuan || '-';
+                        row.querySelector(".supplierNama").value = selected.dataset.supplierNama || '-';
+                        row.querySelector(".supplierId").value = selected.dataset.supplierId || '';
                     } else {
-                        // Reset semua field
-                        row.querySelector(".hargaBeli").value = '0';
-                        row.querySelector(".kategoriNama").value = '';
-                        row.querySelector(".satuanNama").value = '';
-                        row.querySelector(".supplierNama").value = '';
-                        row.querySelector(".supplierId").value = '';
+                        row.querySelectorAll("input").forEach(input => input.value = '');
                     }
-
                     hitungTotal();
                 }
             });
 
-            // Perubahan jumlah
-            document.addEventListener("input", function(e) {
-                if (e.target.classList.contains("jumlah")) {
-                    hitungTotal();
-                }
+            // === Event jumlah berubah ===
+            document.addEventListener("input", e => {
+                if (e.target.classList.contains("jumlah")) hitungTotal();
             });
 
-            // Tambah baris produk
+            // === Tambah baris produk ===
             document.getElementById("addRow").addEventListener("click", function() {
                 let row = document.querySelector("#produkTable tbody tr").cloneNode(true);
-
                 row.querySelectorAll("input").forEach(input => {
-                    if (input.classList.contains("jumlah")) {
-                        input.value = "1";
-                    } else {
-                        input.value = "";
-                    }
+                    input.value = input.classList.contains("jumlah") ? "1" : "";
                 });
-
-                row.querySelectorAll("select").forEach(select => {
-                    select.selectedIndex = 0;
-                });
-
+                row.querySelectorAll("select").forEach(select => select.selectedIndex = 0);
                 document.querySelector("#produkTable tbody").appendChild(row);
                 hitungTotal();
             });
 
-            // Hapus baris produk
+            // === Hapus baris ===
             document.addEventListener("click", function(e) {
                 if (e.target.closest(".removeRow")) {
                     if (document.querySelectorAll("#produkTable tbody tr").length > 1) {
                         e.target.closest("tr").remove();
                         hitungTotal();
-                    } else {
-                        alert('Minimal harus ada satu baris produk!');
-                    }
+                    } else alert('Minimal harus ada satu baris produk!');
                 }
             });
 
