@@ -897,7 +897,7 @@
                     <i class="bi bi-trash"></i></button></td>
             </tr>`;
             produkList.insertAdjacentHTML('beforeend', row);
-            
+
             let newRow = produkList.lastElementChild;
             newRow.style.backgroundColor = '#d4edda';
             setTimeout(() => newRow.style.backgroundColor = '', 500);
@@ -920,7 +920,7 @@
             console.log('⏸️ Already processing');
             return;
         }
-        
+
         barcode = barcode.trim();
         if (barcode.length === 0) {
             barcodeInput.value = '';
@@ -941,12 +941,12 @@
 
         isProcessing = true;
         console.log('✅ Found:', produk.nama);
-        
+
         if (addProduct(produk)) {
             barcodeInput.value = '';
             barcodeInput.focus();
         }
-        
+
         setTimeout(() => isProcessing = false, 200);
     }
 
@@ -954,17 +954,17 @@
     barcodeInput.addEventListener('input', function(e) {
         const currentValue = this.value;
         const currentLength = currentValue.length;
-        
+
         console.log('📝 Input:', currentValue, 'Len:', currentLength);
         clearTimeout(barcodeTimeout);
-        
+
         if (currentLength === 1) {
             scanStartTime = Date.now();
         }
-        
+
         const scanDuration = Date.now() - scanStartTime;
         console.log('⏱️ Duration:', scanDuration + 'ms');
-        
+
         // EAN-13 exact length
         if (currentLength === 13) {
             console.log('📏 EAN-13 detected!');
@@ -1006,7 +1006,7 @@
             e.preventDefault();
             console.log('⏎ ENTER pressed');
             clearTimeout(barcodeTimeout);
-            
+
             const barcode = this.value.trim();
             if (barcode.length > 0) {
                 console.log('🔵 Process via ENTER:', barcode);
@@ -1014,7 +1014,7 @@
             }
             return false;
         }
-        
+
         // Debug: log all keys
         console.log('🔑 KEY:', e.key, 'Code:', e.code);
     });
@@ -1140,7 +1140,7 @@
     searchProdukInput.addEventListener('input', filterAndDisplayProduk);
     filterKategoriSelect.addEventListener('change', filterAndDisplayProduk);
     metodeSelect.addEventListener('change', togglePaymentInputs);
-    
+
     pelangganSelect.addEventListener('change', function() {
         updateDiskonInfo();
         hitungTotal();
@@ -1215,15 +1215,15 @@
 
     // Auto-focus barcode
     window.addEventListener('load', () => barcodeInput.focus());
-    
+
     document.addEventListener('click', function(e) {
         if (!e.target.matches('input, select, button, a, .produk-card')) {
             barcodeInput.focus();
         }
     });
-    
+
     document.addEventListener('keydown', function(e) {
-        if (document.activeElement.tagName === 'INPUT' || 
+        if (document.activeElement.tagName === 'INPUT' ||
             document.activeElement.tagName === 'SELECT' ||
             document.activeElement.tagName === 'TEXTAREA') return;
         if (e.ctrlKey || e.altKey || e.metaKey || e.key === 'Tab') return;
@@ -1302,7 +1302,7 @@
         filterAndDisplayProduk();
         updateCartCount();
         barcodeInput.focus();
-        
+
         console.log('✅ Scanner Ready - Panda PRJ-2200');
         console.log('📊 Products loaded:', Object.keys(produkData).length);
     });

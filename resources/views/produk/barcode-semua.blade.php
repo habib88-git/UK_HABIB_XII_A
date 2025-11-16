@@ -64,7 +64,7 @@
                 <h4>{{ $produk->nama_produk }}</h4>
                 <div class="barcode-container">
                     <div class="barcode">
-                        {!! DNS1D::getBarcodeHTML($produk->barcode, 'EAN13', 1.2, 40) !!}
+                        {!! DNS1D::getBarcodeHTML($produk->barcode, 'C128', 1.2, 40) !!}
                     </div>
                 </div>
                 <small>{{ $produk->barcode }}</small>

@@ -60,7 +60,14 @@
                                         <td class="text-center">{{ $loop->iteration }}</td>
                                         <td class="text-center">
                                             <div class="barcode-container">
-                                                {!! DNS1D::getBarcodeHTML($produk->barcode, 'EAN13', 1.5, 40) !!}
+                                                @php
+                                                    // Langsung pakai CODE128 aja biar universal
+                                                    try {
+                                                        echo DNS1D::getBarcodeHTML($produk->barcode, 'C128', 1.5, 40);
+                                                    } catch (\Exception $e) {
+                                                        echo '<div class="text-danger small">Barcode Error</div>';
+                                                    }
+                                                @endphp
                                                 <small class="d-block mt-1">{{ $produk->barcode }}</small>
                                             </div>
                                         </td>
@@ -85,17 +92,38 @@
                                                 {{ $produk->stok }}
                                             </span>
                                         </td>
+
+                                        {{-- Kadaluwarsa + Hitung Hari --}}
                                         <td class="text-center">
                                             @php
                                                 $now = \Carbon\Carbon::now();
                                                 $kadaluwarsa = \Carbon\Carbon::parse($produk->kadaluwarsa);
                                                 $diff = $now->diffInDays($kadaluwarsa, false);
+
+                                                // Tentukan warna status
+                                                $color = $diff < 0 ? 'danger' : ($diff <= 30 ? 'warning' : 'success');
                                             @endphp
-                                            <span
-                                                class="badge badge-{{ $diff < 0 ? 'danger' : ($diff <= 30 ? 'warning' : 'success') }}">
+
+                                            {{-- Baris 1 = Tanggal dengan badge warna --}}
+                                            <span class="badge badge-{{ $color }}">
                                                 {{ $produk->kadaluwarsa->format('d/m/Y') }}
                                             </span>
+
+                                            {{-- Baris 2 = Teks hari tersisa (warna ngikut badge) --}}
+                                            <div class="mt-1" style="font-size: 12px;">
+                                                @if ($diff < 0)
+                                                    <span class="text-{{ $color }}">Expired {{ abs($diff) }}
+                                                        hari lalu</span>
+                                                @elseif ($diff == 0)
+                                                    <span class="text-{{ $color }}">Kadaluwarsa hari ini</span>
+                                                @else
+                                                    <span class="text-{{ $color }}">{{ $diff }} hari
+                                                        lagi</span>
+                                                @endif
+                                            </div>
                                         </td>
+
+                                        {{-- Aksi --}}
                                         <td class="text-center">
                                             <div class="d-flex justify-content-center" style="gap: 8px;">
                                                 <a href="{{ route('produk.edit', $produk->produk_id) }}"
@@ -123,7 +151,7 @@
                                     </tr>
                                 @empty
                                     <tr>
-                                        <td colspan="11" class="text-center text-muted py-4">
+                                        <td colspan="12" class="text-center text-muted py-4">
                                             <i class="fas fa-info-circle"></i> Belum ada data produk
                                         </td>
                                     </tr>
@@ -150,7 +178,6 @@
             margin-right: 0;
         }
 
-        /* Gaya baru untuk flex layout */
         .d-flex.justify-content-center {
             padding: 4px 0;
         }
