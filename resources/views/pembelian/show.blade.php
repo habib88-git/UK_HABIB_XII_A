@@ -36,6 +36,12 @@
                             <strong>{{ $pembelian->user->name ?? '-' }}</strong>
                         </div>
                     </div>
+                    <div class="col-md-4">
+                        <div class="border-start border-info border-3 ps-3">
+                            <small class="text-muted d-block">Supplier</small>
+                            <strong>{{ $pembelian->supplier->nama_supplier ?? '-' }}</strong>
+                        </div>
+                    </div>
                 </div>
 
                 <hr>
@@ -53,12 +59,14 @@
                             <thead class="table-primary text-center">
                                 <tr>
                                     <th>Produk</th>
+                                    <th>Barcode</th>
                                     <th>Supplier</th>
                                     <th>Kategori</th>
                                     <th>Satuan</th>
                                     <th>Jumlah</th>
-                                    <th>Harga Beli (Rp)</th>
-                                    <th>Subtotal (Rp)</th>
+                                    <th>Harga Beli</th>
+                                    <th>Kadaluwarsa</th>
+                                    <th>Subtotal</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -68,17 +76,35 @@
                                             <div class="fw-semibold">{{ $d->produk->nama_produk ?? '-' }}</div>
                                             <small class="text-muted">Kode: {{ $d->produk->kode_produk ?? '-' }}</small>
                                         </td>
+                                        <td>
+                                            <span class="badge bg-secondary font-monospace">
+                                                {{ $d->barcode_batch ?? $d->produk->barcode ?? '-' }}
+                                            </span>
+                                        </td>
                                         <td>{{ $d->produk->supplier->nama_supplier ?? '-' }}</td>
                                         <td>{{ $d->produk->kategori->nama_kategori ?? '-' }}</td>
                                         <td>{{ $d->produk->satuan->nama_satuan ?? '-' }}</td>
                                         <td>{{ $d->jumlah }}</td>
                                         <td>Rp {{ number_format($d->harga_beli, 0, ',', '.') }}</td>
-                                        <td class="fw-bold text-success">Rp {{ number_format($d->subtotal, 0, ',', '.') }}
+                                        <td>
+                                            @if($d->kadaluwarsa)
+                                                @php
+                                                    $kadaluwarsa = \Carbon\Carbon::parse($d->kadaluwarsa);
+                                                    $isExpired = $kadaluwarsa->isPast();
+                                                    $isExpiringSoon = $kadaluwarsa->diffInDays(now()) <= 30 && !$isExpired;
+                                                @endphp
+                                                <span class="badge {{ $isExpired ? 'bg-danger' : ($isExpiringSoon ? 'bg-warning' : 'bg-success') }}">
+                                                    {{ $kadaluwarsa->format('d/m/Y') }}
+                                                </span>
+                                            @else
+                                                <span class="text-muted">-</span>
+                                            @endif
                                         </td>
+                                        <td class="fw-bold text-success">Rp {{ number_format($d->subtotal, 0, ',', '.') }}</td>
                                     </tr>
                                 @empty
                                     <tr>
-                                        <td colspan="7" class="text-center py-4 text-muted">
+                                        <td colspan="9" class="text-center py-4 text-muted">
                                             <i class="fas fa-inbox fa-lg me-2"></i> Belum ada detail pembelian
                                         </td>
                                     </tr>
@@ -141,8 +167,11 @@
             margin-bottom: 0.5rem;
         }
 
-        @media print {
+        .font-monospace {
+            font-family: 'Courier New', Courier, monospace;
+        }
 
+        @media print {
             .btn,
             .tombol-aksi {
                 display: none !important;

@@ -34,6 +34,27 @@
             </div>
         @endif
 
+        {{-- Modal Barcode Scanner --}}
+        <div class="modal fade" id="barcodeScannerModal" tabindex="-1">
+            <div class="modal-dialog modal-lg">
+                <div class="modal-content">
+                    <div class="modal-header bg-primary text-white">
+                        <h5 class="modal-title">
+                            <i class="fas fa-camera me-2"></i> Scan Barcode dengan Kamera
+                        </h5>
+                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body">
+                        <div id="reader" style="width: 100%;"></div>
+                        <div class="alert alert-info mt-3">
+                            <i class="fas fa-info-circle me-2"></i>
+                            Arahkan kamera ke barcode produk
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
         {{-- Card Form --}}
         <div class="card shadow-sm border-0">
             <div class="card-header bg-primary text-white py-3">
@@ -79,13 +100,15 @@
                             <table class="table table-bordered align-middle" id="produkTable">
                                 <thead class="table-primary text-center">
                                     <tr>
-                                        <th>Produk</th>
-                                        <th>Supplier</th>
-                                        <th>Kategori</th>
-                                        <th>Satuan</th>
-                                        <th>Jumlah</th>
-                                        <th>Harga Beli (Rp)</th>
-                                        <th>Subtotal (Rp)</th>
+                                        <th width="15%">Produk</th>
+                                        <th width="12%">Barcode</th>
+                                        <th width="10%">Supplier</th>
+                                        <th width="8%">Kategori</th>
+                                        <th width="8%">Satuan</th>
+                                        <th width="8%">Jumlah</th>
+                                        <th width="10%">Harga Beli</th>
+                                        <th width="10%">Kadaluwarsa</th>
+                                        <th width="10%">Subtotal</th>
                                         <th width="5%">Aksi</th>
                                     </tr>
                                 </thead>
@@ -100,11 +123,23 @@
                                                         data-kategori="{{ $p->kategori->nama_kategori ?? '-' }}"
                                                         data-satuan="{{ $p->satuan->nama_satuan ?? '-' }}"
                                                         data-supplier-id="{{ $p->supplier_id ?? '' }}"
-                                                        data-supplier-nama="{{ $p->supplier->nama_supplier ?? '-' }}">
+                                                        data-supplier-nama="{{ $p->supplier->nama_supplier ?? '-' }}"
+                                                        data-barcode="{{ $p->barcode ?? '' }}">
                                                         {{ $p->nama_produk }}
                                                     </option>
                                                 @endforeach
                                             </select>
+                                        </td>
+                                        <td>
+                                            <div class="input-group">
+                                                <input type="text" name="barcode[]" class="form-control barcodeInput"
+                                                    placeholder="Scan/Input" required>
+                                                <button type="button" class="btn btn-outline-primary scanBarcodeBtn"
+                                                    title="Scan dengan Kamera">
+                                                    <i class="fas fa-camera"></i>
+                                                </button>
+                                            </div>
+                                            <small class="text-muted">Scan atau ketik manual</small>
                                         </td>
                                         <td>
                                             <input type="text" class="form-control supplierNama bg-light text-center"
@@ -118,8 +153,11 @@
                                         <td><input type="number" name="jumlah[]" class="form-control jumlah text-end"
                                                 value="1" min="1" required></td>
                                         <td><input type="text" name="harga_beli[]"
-                                                class="form-control hargaBeli text-end bg-light" value="0" readonly
-                                                placeholder="0"></td>
+                                                class="form-control hargaBeli text-end bg-light" value="0" readonly></td>
+                                        <td>
+                                            <input type="date" name="kadaluwarsa[]" class="form-control kadaluwarsaInput"
+                                                required>
+                                        </td>
                                         <td><input type="text" class="form-control subtotal text-end bg-light" readonly
                                                 placeholder="0"></td>
                                         <td class="text-center">
@@ -159,9 +197,15 @@
         </div>
     </div>
 
+    {{-- Load html5-qrcode Library --}}
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html5-qrcode/2.3.8/html5-qrcode.min.js"></script>
+
     {{-- Script --}}
     <script>
         document.addEventListener("DOMContentLoaded", function() {
+            let currentScanRow = null;
+            let html5QrcodeScanner = null;
+
             // === Format angka ===
             function formatNumber(num) {
                 return new Intl.NumberFormat('id-ID').format(num);
@@ -172,17 +216,13 @@
                 return parseFloat(str.toString().replace(/\./g, '').replace(/,/g, ''));
             }
 
-            // === Set tanggal & waktu otomatis (jam lokal user, update tiap detik) ===
+            // === Set tanggal & waktu otomatis ===
             function setCurrentDateTime() {
                 const now = new Date();
-
-                // Untuk input datetime-local (format lokal)
                 const local = new Date(now.getTime() - now.getTimezoneOffset() * 60000);
                 const datetimeLocal = local.toISOString().slice(0, 16);
-                const tanggalInput = document.getElementById('tanggalInput');
-                tanggalInput.value = datetimeLocal;
+                document.getElementById('tanggalInput').value = datetimeLocal;
 
-                // Untuk tampilan realtime
                 const options = {
                     weekday: 'long',
                     year: 'numeric',
@@ -225,8 +265,16 @@
                         row.querySelector(".satuanNama").value = selected.dataset.satuan || '-';
                         row.querySelector(".supplierNama").value = selected.dataset.supplierNama || '-';
                         row.querySelector(".supplierId").value = selected.dataset.supplierId || '';
+
+                        // Set barcode dari produk yang dipilih (jika sudah ada)
+                        let existingBarcode = selected.dataset.barcode || '';
+                        row.querySelector(".barcodeInput").value = existingBarcode;
                     } else {
-                        row.querySelectorAll("input").forEach(input => input.value = '');
+                        row.querySelectorAll("input").forEach(input => {
+                            if (!input.classList.contains("jumlah")) {
+                                input.value = '';
+                            }
+                        });
                     }
                     hitungTotal();
                 }
@@ -241,7 +289,11 @@
             document.getElementById("addRow").addEventListener("click", function() {
                 let row = document.querySelector("#produkTable tbody tr").cloneNode(true);
                 row.querySelectorAll("input").forEach(input => {
-                    input.value = input.classList.contains("jumlah") ? "1" : "";
+                    if (input.classList.contains("jumlah")) {
+                        input.value = "1";
+                    } else {
+                        input.value = "";
+                    }
                 });
                 row.querySelectorAll("select").forEach(select => select.selectedIndex = 0);
                 document.querySelector("#produkTable tbody").appendChild(row);
@@ -254,7 +306,115 @@
                     if (document.querySelectorAll("#produkTable tbody tr").length > 1) {
                         e.target.closest("tr").remove();
                         hitungTotal();
-                    } else alert('Minimal harus ada satu baris produk!');
+                    } else {
+                        alert('Minimal harus ada satu baris produk!');
+                    }
+                }
+            });
+
+            // === BARCODE SCANNER dengan Kamera ===
+            document.addEventListener("click", function(e) {
+                if (e.target.closest(".scanBarcodeBtn")) {
+                    currentScanRow = e.target.closest("tr");
+                    const modal = new bootstrap.Modal(document.getElementById('barcodeScannerModal'));
+                    modal.show();
+
+                    // Inisialisasi scanner setelah modal ditampilkan
+                    setTimeout(() => {
+                        startBarcodeScanner();
+                    }, 500);
+                }
+            });
+
+            function startBarcodeScanner() {
+                if (html5QrcodeScanner) {
+                    html5QrcodeScanner.clear();
+                }
+
+                html5QrcodeScanner = new Html5Qrcode("reader");
+
+                const config = {
+                    fps: 10,
+                    qrbox: { width: 250, height: 250 },
+                    aspectRatio: 1.0
+                };
+
+                html5QrcodeScanner.start(
+                    { facingMode: "environment" },
+                    config,
+                    (decodedText, decodedResult) => {
+                        // Barcode berhasil di-scan
+                        if (currentScanRow) {
+                            currentScanRow.querySelector(".barcodeInput").value = decodedText;
+                        }
+
+                        // Stop scanner dan tutup modal
+                        html5QrcodeScanner.stop().then(() => {
+                            bootstrap.Modal.getInstance(document.getElementById('barcodeScannerModal')).hide();
+
+                            // Play success sound (optional)
+                            playBeep();
+                        });
+                    },
+                    (errorMessage) => {
+                        // Error saat scan (normal, biarkan terus mencoba)
+                    }
+                ).catch((err) => {
+                    alert("Gagal mengakses kamera: " + err);
+                });
+            }
+
+            // Bersihkan scanner saat modal ditutup
+            document.getElementById('barcodeScannerModal').addEventListener('hidden.bs.modal', function() {
+                if (html5QrcodeScanner) {
+                    html5QrcodeScanner.stop().catch(err => console.log(err));
+                }
+            });
+
+            // === Beep sound untuk feedback scan berhasil ===
+            function playBeep() {
+                const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                const oscillator = audioContext.createOscillator();
+                const gainNode = audioContext.createGain();
+
+                oscillator.connect(gainNode);
+                gainNode.connect(audioContext.destination);
+
+                oscillator.frequency.value = 800;
+                oscillator.type = 'sine';
+                gainNode.gain.value = 0.3;
+
+                oscillator.start(audioContext.currentTime);
+                oscillator.stop(audioContext.currentTime + 0.1);
+            }
+
+            // === Support untuk Hardware Barcode Scanner ===
+            // Hardware scanner biasanya mengirim input seperti keyboard
+            // Deteksi input yang sangat cepat (dalam waktu < 100ms) sebagai hasil scan
+            let barcodeBuffer = '';
+            let barcodeTimeout = null;
+
+            document.addEventListener("keypress", function(e) {
+                // Hanya tangkap di input barcode
+                if (e.target.classList.contains("barcodeInput")) {
+                    clearTimeout(barcodeTimeout);
+
+                    if (e.key === 'Enter') {
+                        e.preventDefault();
+                        // Enter berarti scan selesai
+                        if (barcodeBuffer.length > 0) {
+                            e.target.value = barcodeBuffer;
+                            playBeep();
+                            barcodeBuffer = '';
+                        }
+                    } else {
+                        barcodeBuffer += e.key;
+
+                        // Reset buffer setelah 100ms (jika tidak ada input lagi)
+                        barcodeTimeout = setTimeout(() => {
+                            barcodeBuffer = '';
+                        }, 100);
+                    }
                 }
             });
 
@@ -301,6 +461,21 @@
 
         .card {
             border-radius: 0.75rem;
+        }
+
+        .input-group .btn {
+            height: 42px;
+        }
+
+        #reader {
+            border: 2px dashed #0d6efd;
+            border-radius: 8px;
+            padding: 10px;
+        }
+
+        .barcodeInput {
+            font-family: 'Courier New', monospace;
+            font-weight: bold;
         }
     </style>
 @endsection

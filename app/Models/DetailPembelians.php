@@ -18,6 +18,8 @@ class DetailPembelians extends Model
         'jumlah',
         'harga_beli',
         'subtotal',
+        'kadaluwarsa',
+        'barcode_batch',
     ];
 
     // Relasi ke pembelian
