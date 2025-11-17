@@ -78,6 +78,13 @@
             </div>
         </li>
 
+        <li class="nav-item">
+            <a class="nav-link" href="{{ route('stock-history.index') }}">
+                <i class="fas fa-history"></i>
+                <span>History Stock</span>
+            </a>
+        </li>
+
         <!-- Laporan -->
         <li class="nav-item">
             <a class="nav-link" href="{{ route('laporan.index') }}">

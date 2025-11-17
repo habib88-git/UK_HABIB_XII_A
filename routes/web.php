@@ -13,6 +13,7 @@ use App\Http\Controllers\ProfitController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\LaporanController;
 use App\Http\Controllers\AuthController;
+use App\Http\Controllers\StockHistoryController;
 
 /*
 |--------------------------------------------------------------------------
@@ -68,6 +69,11 @@ Route::middleware(['auth'])->group(function () {
         Route::delete('/pelanggan/{id}', [PelangganController::class, 'destroy'])->name('pelanggan.destroy');
     });
 });
+
+// Stock History Routes
+Route::get('/stock-history', [StockHistoryController::class, 'index'])->name('stock-history.index');
+Route::get('/stock-history/pdf', [StockHistoryController::class, 'downloadPdf'])->name('stock-history.pdf');
+Route::get('/stock-history/{produk}', [StockHistoryController::class, 'show'])->name('stock-history.show');
 
 // Routes Kategori
 Route::get('/kategori', [KategoriController::class, 'index'])->name('kategori.index')->middleware('admin');

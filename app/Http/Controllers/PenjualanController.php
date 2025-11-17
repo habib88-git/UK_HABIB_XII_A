@@ -12,6 +12,7 @@ use App\Models\Produks;
 use App\Models\Pembayarans;
 use App\Models\Kategoris;
 use App\Models\DetailPenjualans;
+use App\Models\StockHistory;
 
 class PenjualanController extends Controller
 {
@@ -91,12 +92,13 @@ class PenjualanController extends Controller
                 'user_id'           => Auth::id(),
             ]);
 
-            // Simpan detail & kurangi stok
+            // Simpan detail & kurangi stok + CATAT HISTORY
             foreach ($request->produk_id as $key => $produk_id) {
                 $produk = Produks::findOrFail($produk_id);
                 $jumlah = $request->jumlah_produk[$key];
                 $subtotal = $produk->harga_jual * $jumlah;
 
+                // Simpan detail penjualan
                 DetailPenjualans::create([
                     'penjualan_id'  => $penjualan->penjualan_id,
                     'produk_id'     => $produk_id,
@@ -104,8 +106,31 @@ class PenjualanController extends Controller
                     'subtotal'      => $subtotal,
                 ]);
 
+                // ✅ CATAT STOCK HISTORY - STOK KELUAR
+                $stokSebelum = $produk->stok;
                 $produk->stok -= $jumlah;
                 $produk->save();
+
+                // Keterangan berdasarkan pelanggan
+                $pelanggan = $request->pelanggan_id 
+                    ? Pelanggans::find($request->pelanggan_id) 
+                    : null;
+                
+                $keterangan = $pelanggan 
+                    ? "Penjualan kepada {$pelanggan->nama_pelanggan}" 
+                    : "Penjualan (Umum)";
+
+                StockHistory::create([
+                    'produk_id' => $produk->produk_id,
+                    'tipe' => 'keluar',
+                    'jumlah' => $jumlah,
+                    'stok_sebelum' => $stokSebelum,
+                    'stok_sesudah' => $produk->stok,
+                    'keterangan' => $keterangan,
+                    'referensi_tipe' => 'penjualan',
+                    'referensi_id' => $penjualan->penjualan_id,
+                    'user_id' => Auth::id(),
+                ]);
             }
 
             // Simpan pembayaran
@@ -199,6 +224,43 @@ class PenjualanController extends Controller
 
     public function destroy(string $id)
     {
-        //
+        // ✅ TAMBAH FUNGSI HAPUS DENGAN KEMBALIKAN STOK
+        $penjualan = Penjualans::findOrFail($id);
+
+        DB::beginTransaction();
+
+        try {
+            // Kembalikan stok dan catat history
+            foreach ($penjualan->detailPenjualans as $detail) {
+                $produk = Produks::find($detail->produk_id);
+                if ($produk) {
+                    $stokSebelum = $produk->stok;
+                    $produk->stok += $detail->jumlah_produk;
+                    $produk->save();
+
+                    // CATAT STOCK HISTORY - STOK MASUK (KOREKSI)
+                    StockHistory::create([
+                        'produk_id' => $produk->produk_id,
+                        'tipe' => 'masuk',
+                        'jumlah' => $detail->jumlah_produk,
+                        'stok_sebelum' => $stokSebelum,
+                        'stok_sesudah' => $produk->stok,
+                        'keterangan' => 'Koreksi: Hapus penjualan #' . $penjualan->penjualan_id,
+                        'referensi_tipe' => 'penjualan',
+                        'referensi_id' => $penjualan->penjualan_id,
+                        'user_id' => Auth::id(),
+                    ]);
+                }
+            }
+
+            $penjualan->delete();
+
+            DB::commit();
+            return redirect()->route('penjualan.index')->with('success', 'Penjualan berhasil dihapus dan stok dikembalikan');
+
+        } catch (\Exception $e) {
+            DB::rollback();
+            return redirect()->back()->with('error', 'Terjadi kesalahan: ' . $e->getMessage());
+        }
     }
 }

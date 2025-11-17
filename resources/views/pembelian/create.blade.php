@@ -123,8 +123,7 @@
                                                         data-kategori="{{ $p->kategori->nama_kategori ?? '-' }}"
                                                         data-satuan="{{ $p->satuan->nama_satuan ?? '-' }}"
                                                         data-supplier-id="{{ $p->supplier_id ?? '' }}"
-                                                        data-supplier-nama="{{ $p->supplier->nama_supplier ?? '-' }}"
-                                                        data-barcode="{{ $p->barcode ?? '' }}">
+                                                        data-supplier-nama="{{ $p->supplier->nama_supplier ?? '-' }}">
                                                         {{ $p->nama_produk }}
                                                     </option>
                                                 @endforeach
@@ -133,13 +132,13 @@
                                         <td>
                                             <div class="input-group">
                                                 <input type="text" name="barcode[]" class="form-control barcodeInput"
-                                                    placeholder="Scan/Input" required>
+                                                    placeholder="Scan/Input barcode baru" required>
                                                 <button type="button" class="btn btn-outline-primary scanBarcodeBtn"
                                                     title="Scan dengan Kamera">
                                                     <i class="fas fa-camera"></i>
                                                 </button>
                                             </div>
-                                            <small class="text-muted">Scan atau ketik manual</small>
+                                            <small class="text-muted">⚡ Scan atau ketik barcode BARU</small>
                                         </td>
                                         <td>
                                             <input type="text" class="form-control supplierNama bg-light text-center"
@@ -156,7 +155,7 @@
                                                 class="form-control hargaBeli text-end bg-light" value="0" readonly></td>
                                         <td>
                                             <input type="date" name="kadaluwarsa[]" class="form-control kadaluwarsaInput"
-                                                required>
+                                                placeholder="Pilih tanggal" required>
                                         </td>
                                         <td><input type="text" class="form-control subtotal text-end bg-light" readonly
                                                 placeholder="0"></td>
@@ -260,16 +259,23 @@
                     let row = e.target.closest("tr");
 
                     if (selected.value) {
+                        // ✅ Auto-fill data produk (kategori, satuan, harga, supplier)
                         row.querySelector(".hargaBeli").value = formatNumber(selected.dataset.harga || 0);
                         row.querySelector(".kategoriNama").value = selected.dataset.kategori || '-';
                         row.querySelector(".satuanNama").value = selected.dataset.satuan || '-';
                         row.querySelector(".supplierNama").value = selected.dataset.supplierNama || '-';
                         row.querySelector(".supplierId").value = selected.dataset.supplierId || '';
 
-                        // Set barcode dari produk yang dipilih (jika sudah ada)
-                        let existingBarcode = selected.dataset.barcode || '';
-                        row.querySelector(".barcodeInput").value = existingBarcode;
+                        // ✅ JANGAN auto-fill barcode & kadaluwarsa! User harus input sendiri
+                        row.querySelector(".barcodeInput").value = '';
+                        row.querySelector(".kadaluwarsaInput").value = '';
+                        
+                        // Focus ke input barcode untuk langsung scan/ketik
+                        setTimeout(() => {
+                            row.querySelector(".barcodeInput").focus();
+                        }, 100);
                     } else {
+                        // Reset semua field kecuali jumlah
                         row.querySelectorAll("input").forEach(input => {
                             if (!input.classList.contains("jumlah")) {
                                 input.value = '';
@@ -319,7 +325,6 @@
                     const modal = new bootstrap.Modal(document.getElementById('barcodeScannerModal'));
                     modal.show();
 
-                    // Inisialisasi scanner setelah modal ditampilkan
                     setTimeout(() => {
                         startBarcodeScanner();
                     }, 500);
@@ -343,35 +348,27 @@
                     { facingMode: "environment" },
                     config,
                     (decodedText, decodedResult) => {
-                        // Barcode berhasil di-scan
                         if (currentScanRow) {
                             currentScanRow.querySelector(".barcodeInput").value = decodedText;
                         }
 
-                        // Stop scanner dan tutup modal
                         html5QrcodeScanner.stop().then(() => {
                             bootstrap.Modal.getInstance(document.getElementById('barcodeScannerModal')).hide();
-
-                            // Play success sound (optional)
                             playBeep();
                         });
                     },
-                    (errorMessage) => {
-                        // Error saat scan (normal, biarkan terus mencoba)
-                    }
+                    (errorMessage) => {}
                 ).catch((err) => {
                     alert("Gagal mengakses kamera: " + err);
                 });
             }
 
-            // Bersihkan scanner saat modal ditutup
             document.getElementById('barcodeScannerModal').addEventListener('hidden.bs.modal', function() {
                 if (html5QrcodeScanner) {
                     html5QrcodeScanner.stop().catch(err => console.log(err));
                 }
             });
 
-            // === Beep sound untuk feedback scan berhasil ===
             function playBeep() {
                 const audioContext = new (window.AudioContext || window.webkitAudioContext)();
                 const oscillator = audioContext.createOscillator();
@@ -388,20 +385,16 @@
                 oscillator.stop(audioContext.currentTime + 0.1);
             }
 
-            // === Support untuk Hardware Barcode Scanner ===
-            // Hardware scanner biasanya mengirim input seperti keyboard
-            // Deteksi input yang sangat cepat (dalam waktu < 100ms) sebagai hasil scan
+            // === Support Hardware Barcode Scanner ===
             let barcodeBuffer = '';
             let barcodeTimeout = null;
 
             document.addEventListener("keypress", function(e) {
-                // Hanya tangkap di input barcode
                 if (e.target.classList.contains("barcodeInput")) {
                     clearTimeout(barcodeTimeout);
 
                     if (e.key === 'Enter') {
                         e.preventDefault();
-                        // Enter berarti scan selesai
                         if (barcodeBuffer.length > 0) {
                             e.target.value = barcodeBuffer;
                             playBeep();
@@ -409,8 +402,6 @@
                         }
                     } else {
                         barcodeBuffer += e.key;
-
-                        // Reset buffer setelah 100ms (jika tidak ada input lagi)
                         barcodeTimeout = setTimeout(() => {
                             barcodeBuffer = '';
                         }, 100);

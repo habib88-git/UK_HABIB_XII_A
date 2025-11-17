@@ -7,9 +7,7 @@ use App\Models\Pembelians;
 use App\Models\DetailPembelians;
 use App\Models\Produks;
 use App\Models\Suppliers;
-use App\Models\Users;
-use App\Models\Kategoris;
-use App\Models\Satuans;
+use App\Models\StockHistory; // ✅ TAMBAH INI
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Auth;
 
@@ -24,7 +22,14 @@ class PembelianController extends Controller
     public function create()
     {
         $suppliers = Suppliers::all();
-        $produks = Produks::with(['kategori', 'satuan', 'supplier'])->get();
+        
+        $produks = Produks::select('nama_produk', 'kategori_id', 'satuan_id', 'supplier_id', 'harga_beli', 'harga_jual', 'photo')
+            ->selectRaw('MAX(produk_id) as produk_id')
+            ->selectRaw('MAX(barcode) as barcode')
+            ->with(['kategori', 'satuan', 'supplier'])
+            ->groupBy('nama_produk', 'kategori_id', 'satuan_id', 'supplier_id', 'harga_beli', 'harga_jual', 'photo')
+            ->orderBy('nama_produk', 'asc')
+            ->get();
 
         return view('pembelian.create', compact('suppliers', 'produks'));
     }
@@ -44,7 +49,6 @@ class PembelianController extends Controller
         DB::beginTransaction();
 
         try {
-            // Ambil supplier_id pertama yang valid
             $supplierId = null;
             foreach ($request->supplier_id as $sid) {
                 if ($sid) {
@@ -53,14 +57,12 @@ class PembelianController extends Controller
                 }
             }
 
-            // Hitung total
             $total = 0;
             foreach ($request->jumlah as $i => $qty) {
                 $hargaBeli = (float) str_replace(['.', ','], ['', '.'], $request->harga_beli[$i]);
                 $total += $qty * $hargaBeli;
             }
 
-            // Simpan pembelian
             $pembelian = Pembelians::create([
                 'tanggal' => $request->tanggal,
                 'supplier_id' => $supplierId,
@@ -68,7 +70,6 @@ class PembelianController extends Controller
                 'total_harga' => $total,
             ]);
 
-            // Loop produk - BUAT PRODUK BARU (BUKAN UPDATE STOK!)
             foreach ($request->produk_id as $i => $produkId) {
                 $jumlah = $request->jumlah[$i];
                 $hargaBeli = (float) str_replace(['.', ','], ['', '.'], $request->harga_beli[$i]);
@@ -76,10 +77,8 @@ class PembelianController extends Controller
                 $barcode = $request->barcode[$i];
                 $kadaluwarsa = $request->kadaluwarsa[$i];
 
-                // Ambil data produk template
                 $produkTemplate = Produks::findOrFail($produkId);
 
-                // BUAT PRODUK BARU dengan barcode & kadaluwarsa berbeda
                 $newProduk = Produks::create([
                     'barcode' => $barcode,
                     'nama_produk' => $produkTemplate->nama_produk,
@@ -93,7 +92,6 @@ class PembelianController extends Controller
                     'supplier_id' => $produkTemplate->supplier_id ?? null,
                 ]);
 
-                // Simpan detail pembelian dengan ID produk baru
                 DetailPembelians::create([
                     'pembelian_id' => $pembelian->pembelian_id,
                     'produk_id' => $newProduk->produk_id,
@@ -103,10 +101,23 @@ class PembelianController extends Controller
                     'kadaluwarsa' => $kadaluwarsa,
                     'barcode_batch' => $barcode,
                 ]);
+
+                // ✅ CATAT STOCK HISTORY - STOK MASUK
+                StockHistory::create([
+                    'produk_id' => $newProduk->produk_id,
+                    'tipe' => 'masuk',
+                    'jumlah' => $jumlah,
+                    'stok_sebelum' => 0, // Produk baru, stok awal 0
+                    'stok_sesudah' => $jumlah,
+                    'keterangan' => 'Pembelian dari ' . ($produkTemplate->supplier->nama_supplier ?? 'Supplier'),
+                    'referensi_tipe' => 'pembelian',
+                    'referensi_id' => $pembelian->pembelian_id,
+                    'user_id' => Auth::id() ?? 1,
+                ]);
             }
 
             DB::commit();
-            return redirect()->route('pembelian.index')->with('success', 'Pembelian berhasil disimpan! Produk baru ditambahkan.');
+            return redirect()->route('pembelian.index')->with('success', 'Pembelian berhasil disimpan! Produk baru ditambahkan dengan barcode: ' . implode(', ', $request->barcode));
 
         } catch (\Exception $e) {
             DB::rollback();
@@ -124,7 +135,14 @@ class PembelianController extends Controller
     {
         $pembelian = Pembelians::with(['details.produk'])->findOrFail($id);
         $suppliers = Suppliers::all();
-        $produks = Produks::with(['kategori', 'satuan', 'supplier'])->get();
+        
+        $produks = Produks::select('nama_produk', 'kategori_id', 'satuan_id', 'supplier_id', 'harga_beli', 'harga_jual', 'photo')
+            ->selectRaw('MAX(produk_id) as produk_id')
+            ->selectRaw('MAX(barcode) as barcode')
+            ->with(['kategori', 'satuan', 'supplier'])
+            ->groupBy('nama_produk', 'kategori_id', 'satuan_id', 'supplier_id', 'harga_beli', 'harga_jual', 'photo')
+            ->orderBy('nama_produk', 'asc')
+            ->get();
 
         return view('pembelian.edit', compact('pembelian', 'suppliers', 'produks'));
     }
@@ -146,13 +164,26 @@ class PembelianController extends Controller
         DB::beginTransaction();
 
         try {
-            // Kembalikan stok dari produk yang di detail lama
+            // Kembalikan stok dan catat history
             foreach ($pembelian->details as $detail) {
                 $produk = Produks::find($detail->produk_id);
                 if ($produk) {
+                    $stokSebelum = $produk->stok;
                     $produk->stok -= $detail->jumlah;
 
-                    // Jika stok jadi 0, hapus produk
+                    // ✅ CATAT STOCK HISTORY - KOREKSI STOK (KELUAR)
+                    StockHistory::create([
+                        'produk_id' => $produk->produk_id,
+                        'tipe' => 'keluar',
+                        'jumlah' => $detail->jumlah,
+                        'stok_sebelum' => $stokSebelum,
+                        'stok_sesudah' => $produk->stok,
+                        'keterangan' => 'Koreksi: Edit pembelian #' . $pembelian->pembelian_id,
+                        'referensi_tipe' => 'pembelian',
+                        'referensi_id' => $pembelian->pembelian_id,
+                        'user_id' => Auth::id() ?? 1,
+                    ]);
+
                     if ($produk->stok <= 0) {
                         $produk->delete();
                     } else {
@@ -161,24 +192,20 @@ class PembelianController extends Controller
                 }
             }
 
-            // Hapus detail lama
             $pembelian->details()->delete();
 
-            // Hitung total baru
             $total = 0;
             foreach ($request->produk_id as $key => $produkId) {
                 $hargaBeli = (float) str_replace(['.', ','], ['', '.'], $request->harga_beli[$key]);
                 $total += $request->jumlah[$key] * $hargaBeli;
             }
 
-            // Update pembelian
             $pembelian->update([
                 'tanggal' => $request->tanggal,
                 'supplier_id' => $request->supplier_id,
                 'total_harga' => $total,
             ]);
 
-            // Simpan detail baru - SELALU BUAT PRODUK BARU
             foreach ($request->produk_id as $key => $produkId) {
                 $jumlah = $request->jumlah[$key];
                 $hargaBeli = (float) str_replace(['.', ','], ['', '.'], $request->harga_beli[$key]);
@@ -186,10 +213,8 @@ class PembelianController extends Controller
                 $barcode = $request->barcode[$key];
                 $kadaluwarsa = $request->kadaluwarsa[$key];
 
-                // Ambil data produk template
                 $produkTemplate = Produks::findOrFail($produkId);
 
-                // BUAT PRODUK BARU (tidak peduli barcode sama atau tidak)
                 $newProduk = Produks::create([
                     'barcode' => $barcode,
                     'nama_produk' => $produkTemplate->nama_produk,
@@ -203,7 +228,6 @@ class PembelianController extends Controller
                     'supplier_id' => $produkTemplate->supplier_id ?? null,
                 ]);
 
-                // Simpan detail pembelian baru
                 DetailPembelians::create([
                     'pembelian_id' => $pembelian->pembelian_id,
                     'produk_id' => $newProduk->produk_id,
@@ -212,6 +236,19 @@ class PembelianController extends Controller
                     'subtotal' => $subtotal,
                     'kadaluwarsa' => $kadaluwarsa,
                     'barcode_batch' => $barcode,
+                ]);
+
+                // ✅ CATAT STOCK HISTORY - STOK MASUK (EDIT)
+                StockHistory::create([
+                    'produk_id' => $newProduk->produk_id,
+                    'tipe' => 'masuk',
+                    'jumlah' => $jumlah,
+                    'stok_sebelum' => 0,
+                    'stok_sesudah' => $jumlah,
+                    'keterangan' => 'Edit pembelian #' . $pembelian->pembelian_id,
+                    'referensi_tipe' => 'pembelian',
+                    'referensi_id' => $pembelian->pembelian_id,
+                    'user_id' => Auth::id() ?? 1,
                 ]);
             }
 
@@ -231,13 +268,25 @@ class PembelianController extends Controller
         DB::beginTransaction();
 
         try {
-            // Kembalikan stok dan hapus produk jika stok 0
             foreach ($pembelian->details as $detail) {
                 $produk = Produks::find($detail->produk_id);
                 if ($produk) {
+                    $stokSebelum = $produk->stok;
                     $produk->stok -= $detail->jumlah;
 
-                    // Jika stok jadi 0 atau kurang, hapus produk
+                    // ✅ CATAT STOCK HISTORY - KOREKSI (KELUAR)
+                    StockHistory::create([
+                        'produk_id' => $produk->produk_id,
+                        'tipe' => 'keluar',
+                        'jumlah' => $detail->jumlah,
+                        'stok_sebelum' => $stokSebelum,
+                        'stok_sesudah' => $produk->stok,
+                        'keterangan' => 'Hapus pembelian #' . $pembelian->pembelian_id,
+                        'referensi_tipe' => 'pembelian',
+                        'referensi_id' => $pembelian->pembelian_id,
+                        'user_id' => Auth::id() ?? 1,
+                    ]);
+
                     if ($produk->stok <= 0) {
                         $produk->delete();
                     } else {

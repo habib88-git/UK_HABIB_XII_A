@@ -29,7 +29,7 @@ class ProdukController extends Controller
     public function store(Request $request)
     {
         $request->validate([
-            'barcode'     => 'required|string|max:50|unique:tbl_produks,barcode',
+            'barcode'     => 'required|string|max:50',
             'nama_produk' => 'required|string|max:100',
             'photo'       => 'nullable|image|mimes:jpeg,png,jpg|max:2048',
             'harga_beli'  => 'required|numeric',
@@ -68,7 +68,7 @@ class ProdukController extends Controller
         $produk = Produks::findOrFail($id);
 
         $request->validate([
-            'barcode'     => 'required|string|max:50|unique:tbl_produks,barcode,' . $id . ',produk_id',
+            'barcode'     => 'required|string|max:50', 
             'nama_produk' => 'required|string|max:100',
             'photo'       => 'nullable|image|mimes:jpeg,png,jpg|max:2048',
             'harga_beli'  => 'required|numeric',
