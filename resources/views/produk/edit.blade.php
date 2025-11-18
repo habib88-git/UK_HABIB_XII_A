@@ -26,6 +26,19 @@
             </div>
         @endif
 
+        {{-- Alert Info Batch --}}
+        <div class="alert alert-warning alert-dismissible fade show" role="alert">
+            <strong><i class="fas fa-exclamation-triangle"></i> Perhatian!</strong>
+            <ul class="mb-0 mt-2">
+                <li><strong>Stok & Kadaluwarsa:</strong> Tidak bisa diedit di sini (dikelola otomatis dari batch)</li>
+                <li><strong>Lihat Batch:</strong> Scroll ke bawah untuk melihat detail semua batch produk ini</li>
+                <li><strong>Tambah Stok:</strong> Gunakan menu <strong>Pembelian</strong> untuk menambah batch baru</li>
+            </ul>
+            <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+                <span aria-hidden="true">&times;</span>
+            </button>
+        </div>
+
         {{-- Form Edit Produk --}}
         <div class="card shadow-sm mb-4">
             <div class="card-header py-3">
@@ -55,43 +68,54 @@
                         </div>
 
                         <div class="col-md-6 mb-3">
-                            <label for="harga_beli" class="form-label">Harga Beli</label>
+                            <label for="harga_beli" class="form-label">Harga Beli <span class="text-danger">*</span></label>
                             <div class="input-group">
                                 <span class="input-group-text">Rp</span>
                                 <input type="text" id="harga_beli_display" class="form-control"
                                     value="{{ number_format(old('harga_beli', $produk->harga_beli), 0, ',', '.') }}"
-                                    placeholder="0">
+                                    placeholder="0" required>
                                 <input type="hidden" id="harga_beli" name="harga_beli"
                                     value="{{ old('harga_beli', $produk->harga_beli) }}">
                             </div>
                         </div>
 
                         <div class="col-md-6 mb-3">
-                            <label for="harga_jual" class="form-label">Harga Jual</label>
+                            <label for="harga_jual" class="form-label">Harga Jual <span class="text-danger">*</span></label>
                             <div class="input-group">
                                 <span class="input-group-text">Rp</span>
                                 <input type="text" id="harga_jual_display" class="form-control"
                                     value="{{ number_format(old('harga_jual', $produk->harga_jual), 0, ',', '.') }}"
-                                    placeholder="0">
+                                    placeholder="0" required>
                                 <input type="hidden" id="harga_jual" name="harga_jual"
                                     value="{{ old('harga_jual', $produk->harga_jual) }}">
                             </div>
                         </div>
 
+                        {{-- ✅ STOK READ-ONLY (DIHITUNG DARI BATCH) --}}
                         <div class="col-md-6 mb-3">
-                            <label for="stok" class="form-label">Stok</label>
-                            <input type="number" id="stok" name="stok" class="form-control"
-                                value="{{ old('stok', $produk->stok) }}" required min="0">
+                            <label class="form-label">Total Stok (Dari Semua Batch)</label>
+                            <input type="text" class="form-control bg-light" 
+                                value="{{ $produk->stokTersedia() }} unit (dari {{ $produk->batches->count() }} batch)" readonly>
+                            <small class="text-muted">
+                                <i class="fas fa-info-circle"></i> Stok dihitung otomatis dari batch
+                            </small>
+                        </div>
+
+                        {{-- ✅ KADALUWARSA TERDEKAT (READ-ONLY) --}}
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Kadaluwarsa Terdekat</label>
+                            @php
+                                $batchTerdekat = $produk->getBatchTerdekat();
+                            @endphp
+                            <input type="text" class="form-control bg-light" 
+                                value="{{ $batchTerdekat ? $batchTerdekat->kadaluwarsa->format('d/m/Y') : 'Tidak ada batch' }}" readonly>
+                            <small class="text-muted">
+                                <i class="fas fa-calendar-alt"></i> Dari batch dengan kadaluwarsa paling dekat
+                            </small>
                         </div>
 
                         <div class="col-md-6 mb-3">
-                            <label for="kadaluwarsa" class="form-label">Tanggal Kadaluwarsa</label>
-                            <input type="date" id="kadaluwarsa" name="kadaluwarsa" class="form-control"
-                                value="{{ old('kadaluwarsa', $produk->kadaluwarsa->format('Y-m-d')) }}" required>
-                        </div>
-
-                        <div class="col-md-6 mb-3">
-                            <label for="kategori_id" class="form-label">Kategori</label>
+                            <label for="kategori_id" class="form-label">Kategori <span class="text-danger">*</span></label>
                             <select id="kategori_id" name="kategori_id" class="form-control" required>
                                 <option disabled>-- Pilih Kategori --</option>
                                 @foreach ($kategoris as $kategori)
@@ -104,7 +128,7 @@
                         </div>
 
                         <div class="col-md-6 mb-3">
-                            <label for="satuan_id" class="form-label">Satuan</label>
+                            <label for="satuan_id" class="form-label">Satuan <span class="text-danger">*</span></label>
                             <select id="satuan_id" name="satuan_id" class="form-control" required>
                                 <option disabled>-- Pilih Satuan --</option>
                                 @foreach ($satuans as $satuan)
@@ -117,7 +141,7 @@
                         </div>
 
                         <div class="col-md-6 mb-3">
-                            <label for="supplier_id" class="form-label">Supplier</label>
+                            <label for="supplier_id" class="form-label">Supplier <span class="text-danger">*</span></label>
                             <select id="supplier_id" name="supplier_id" class="form-control" required>
                                 <option disabled>-- Pilih Supplier --</option>
                                 @foreach ($suppliers as $supplier)
@@ -176,6 +200,99 @@
                         </a>
                     </div>
                 </form>
+            </div>
+        </div>
+
+        {{-- ✅ TABEL BATCH PRODUK --}}
+        <div class="card shadow-sm mb-4">
+            <div class="card-header py-3 bg-info text-white">
+                <h6 class="m-0 font-weight-bold">
+                    <i class="fas fa-layer-group me-2"></i> Detail Batch Produk
+                </h6>
+            </div>
+            <div class="card-body">
+                @if($produk->batches->count() > 0)
+                    <div class="table-responsive">
+                        <table class="table table-bordered table-hover align-middle">
+                            <thead class="table-light text-center">
+                                <tr>
+                                    <th width="5%">No</th>
+                                    <th>Barcode Batch</th>
+                                    <th width="10%">Stok</th>
+                                    <th width="15%">Kadaluwarsa</th>
+                                    <th width="15%">Harga Beli</th>
+                                    <th width="15%">Sumber</th>
+                                    <th width="15%">Status</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach($produk->batches as $index => $batch)
+                                    @php
+                                        $now = \Carbon\Carbon::now();
+                                        $kadaluwarsa = \Carbon\Carbon::parse($batch->kadaluwarsa);
+                                        $diff = $now->diffInDays($kadaluwarsa, false);
+                                        
+                                        if ($diff < 0) {
+                                            $badgeColor = 'danger';
+                                            $statusText = 'Expired ' . abs($diff) . ' hari lalu';
+                                        } elseif ($diff == 0) {
+                                            $badgeColor = 'danger';
+                                            $statusText = 'Kadaluwarsa hari ini';
+                                        } elseif ($diff <= 30) {
+                                            $badgeColor = 'warning';
+                                            $statusText = $diff . ' hari lagi';
+                                        } else {
+                                            $badgeColor = 'success';
+                                            $statusText = $diff . ' hari lagi';
+                                        }
+                                    @endphp
+                                    <tr>
+                                        <td class="text-center">{{ $index + 1 }}</td>
+                                        <td><code>{{ $batch->barcode_batch }}</code></td>
+                                        <td class="text-center">
+                                            <span class="badge badge-{{ $batch->stok > 0 ? 'success' : 'secondary' }}">
+                                                {{ $batch->stok }}
+                                            </span>
+                                        </td>
+                                        <td class="text-center">
+                                            {{ $batch->kadaluwarsa->format('d/m/Y') }}
+                                        </td>
+                                        <td class="text-end">Rp {{ number_format($batch->harga_beli, 0, ',', '.') }}</td>
+                                        <td class="text-center">
+                                            @if($batch->pembelian_id)
+                                                <a href="{{ route('pembelian.show', $batch->pembelian_id) }}" 
+                                                   class="btn btn-sm btn-outline-primary" target="_blank">
+                                                    <i class="fas fa-receipt"></i> Pembelian #{{ $batch->pembelian_id }}
+                                                </a>
+                                            @else
+                                                <span class="badge badge-secondary">Stok Awal</span>
+                                            @endif
+                                        </td>
+                                        <td class="text-center">
+                                            <span class="badge badge-{{ $badgeColor }}">
+                                                {{ $statusText }}
+                                            </span>
+                                        </td>
+                                    </tr>
+                                @endforeach
+                            </tbody>
+                            <tfoot class="table-light">
+                                <tr>
+                                    <th colspan="2" class="text-end">Total Stok:</th>
+                                    <th class="text-center">
+                                        <span class="badge badge-primary">{{ $produk->batches->sum('stok') }}</span>
+                                    </th>
+                                    <th colspan="4"></th>
+                                </tr>
+                            </tfoot>
+                        </table>
+                    </div>
+                @else
+                    <div class="alert alert-info text-center mb-0">
+                        <i class="fas fa-info-circle me-2"></i>
+                        Belum ada batch untuk produk ini. Tambahkan stok melalui menu <strong>Pembelian</strong>.
+                    </div>
+                @endif
             </div>
         </div>
     </div>

@@ -62,7 +62,7 @@ class Produks extends Model
         return $mod === 0 ? 0 : 10 - $mod;
     }
 
-    // === RELASI ===
+    // === RELASI EXISTING ===
     public function kategori()
     {
         return $this->belongsTo(Kategoris::class, 'kategori_id', 'kategori_id');
@@ -81,5 +81,38 @@ class Produks extends Model
     public function detailPenjualans()
     {
         return $this->hasMany(DetailPenjualans::class, 'produk_id', 'produk_id');
+    }
+
+    // ✅ RELASI KE BATCH (BARU)
+    public function batches()
+    {
+        return $this->hasMany(BatchProduk::class, 'produk_id', 'produk_id');
+    }
+
+    public function batchesAktif()
+    {
+        return $this->hasMany(BatchProduk::class, 'produk_id', 'produk_id')
+            ->where('stok', '>', 0)
+            ->orderBy('kadaluwarsa', 'asc');
+    }
+
+    // ✅ METHOD HELPER BATCH
+    public function updateStokFromBatch()
+    {
+        $this->stok = $this->batches()->sum('stok');
+        $this->save();
+    }
+
+    public function stokTersedia()
+    {
+        return $this->batches()->sum('stok');
+    }
+
+    public function getBatchTerdekat()
+    {
+        return $this->batches()
+            ->where('stok', '>', 0)
+            ->orderBy('kadaluwarsa', 'asc')
+            ->first();
     }
 }

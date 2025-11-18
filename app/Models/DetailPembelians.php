@@ -15,11 +15,16 @@ class DetailPembelians extends Model
     protected $fillable = [
         'pembelian_id',
         'produk_id',
+        'batch_id',          // ✅ TAMBAH INI
         'jumlah',
         'harga_beli',
         'subtotal',
         'kadaluwarsa',
         'barcode_batch',
+    ];
+
+    protected $casts = [
+        'kadaluwarsa' => 'date',
     ];
 
     // Relasi ke pembelian
@@ -32,5 +37,11 @@ class DetailPembelians extends Model
     public function produk()
     {
         return $this->belongsTo(Produks::class, 'produk_id', 'produk_id');
+    }
+
+    // ✅ TAMBAH RELASI KE BATCH
+    public function batch()
+    {
+        return $this->belongsTo(BatchProduk::class, 'batch_id', 'batch_id');
     }
 }

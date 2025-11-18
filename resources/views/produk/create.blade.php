@@ -26,6 +26,19 @@
             </div>
         @endif
 
+        {{-- Alert Info --}}
+        <div class="alert alert-info alert-dismissible fade show" role="alert">
+            <strong><i class="fas fa-info-circle"></i> Informasi Sistem Batch!</strong>
+            <ul class="mb-0 mt-2">
+                <li><strong>Barcode:</strong> Barcode master sebagai identitas produk utama</li>
+                <li><strong>Stok Awal:</strong> Jika diisi, sistem akan otomatis membuat batch pertama</li>
+                <li><strong>Batch Selanjutnya:</strong> Bisa ditambahkan melalui menu Pembelian dengan barcode & kadaluwarsa berbeda</li>
+            </ul>
+            <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+                <span aria-hidden="true">&times;</span>
+            </button>
+        </div>
+
         {{-- Form Tambah Produk --}}
         <div class="card shadow-sm mb-4">
             <div class="card-header py-3">
@@ -75,19 +88,25 @@
                         </div>
 
                         <div class="col-md-6 mb-3">
-                            <label for="stok" class="form-label">Stok</label>
+                            <label for="stok" class="form-label">Stok Awal <span class="text-danger">*</span></label>
                             <input type="number" id="stok" name="stok" class="form-control"
                                 value="{{ old('stok', 0) }}" required min="0">
+                            <small class="text-muted">
+                                <i class="fas fa-info-circle"></i> Jika diisi > 0, sistem akan otomatis membuat batch pertama
+                            </small>
                         </div>
 
                         <div class="col-md-6 mb-3">
-                            <label for="kadaluwarsa" class="form-label">Tanggal Kadaluwarsa</label>
+                            <label for="kadaluwarsa" class="form-label">Tanggal Kadaluwarsa <span class="text-danger">*</span></label>
                             <input type="date" id="kadaluwarsa" name="kadaluwarsa" class="form-control"
                                 value="{{ old('kadaluwarsa') }}" required>
+                            <small class="text-muted">
+                                <i class="fas fa-calendar-alt"></i> Tanggal kadaluwarsa untuk batch pertama
+                            </small>
                         </div>
 
                         <div class="col-md-6 mb-3">
-                            <label for="kategori_id" class="form-label">Kategori</label>
+                            <label for="kategori_id" class="form-label">Kategori <span class="text-danger">*</span></label>
                             <select id="kategori_id" name="kategori_id" class="form-control" required>
                                 <option disabled selected>-- Pilih Kategori --</option>
                                 @foreach ($kategoris as $kategori)
@@ -100,7 +119,7 @@
                         </div>
 
                         <div class="col-md-6 mb-3">
-                            <label for="satuan_id" class="form-label">Satuan</label>
+                            <label for="satuan_id" class="form-label">Satuan <span class="text-danger">*</span></label>
                             <select id="satuan_id" name="satuan_id" class="form-control" required>
                                 <option disabled selected>-- Pilih Satuan --</option>
                                 @foreach ($satuans as $satuan)
@@ -113,7 +132,7 @@
                         </div>
 
                         <div class="col-md-6 mb-3">
-                            <label for="supplier_id" class="form-label">Supplier</label>
+                            <label for="supplier_id" class="form-label">Supplier <span class="text-danger">*</span></label>
                             <select id="supplier_id" name="supplier_id" class="form-control" required>
                                 <option disabled selected>-- Pilih Supplier --</option>
                                 @foreach ($suppliers as $supplier)

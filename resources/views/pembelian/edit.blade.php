@@ -34,6 +34,15 @@
             </div>
         @endif
 
+        {{-- Alert Warning --}}
+        <div class="alert alert-warning alert-dismissible fade show" role="alert">
+            <strong><i class="fas fa-exclamation-triangle"></i> Perhatian!</strong>
+            <p class="mb-0">Edit pembelian akan menghapus batch lama dan membuat batch baru. Pastikan data sudah benar!</p>
+            <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+                <span aria-hidden="true">&times;</span>
+            </button>
+        </div>
+
         {{-- Card Form --}}
         <div class="card shadow-sm border-0">
             <div class="card-header bg-warning text-white py-3">
@@ -53,9 +62,7 @@
                                 <i class="fas fa-calendar-day me-1 text-primary"></i> Tanggal Pembelian
                             </label>
                             @php
-                                // Format tanggal dengan jam yang benar
                                 $tanggalWithTime = \Carbon\Carbon::parse($pembelian->tanggal);
-                                // Jika jamnya 00:00:00, berarti tidak ada informasi jam, maka gunakan jam sekarang
                                 if ($tanggalWithTime->format('H:i:s') === '00:00:00') {
                                     $tanggalWithTime = now();
                                 }
@@ -89,13 +96,15 @@
                             <table class="table table-bordered align-middle" id="produkTable">
                                 <thead class="table-primary text-center">
                                     <tr>
-                                        <th>Produk</th>
-                                        <th>Supplier</th>
-                                        <th>Kategori</th>
-                                        <th>Satuan</th>
-                                        <th>Jumlah</th>
-                                        <th>Harga Beli (Rp)</th>
-                                        <th>Subtotal (Rp)</th>
+                                        <th width="12%">Produk</th>
+                                        <th width="10%">Barcode Batch</th>
+                                        <th width="8%">Supplier</th>
+                                        <th width="8%">Kategori</th>
+                                        <th width="8%">Satuan</th>
+                                        <th width="8%">Jumlah</th>
+                                        <th width="10%">Harga Beli</th>
+                                        <th width="10%">Kadaluwarsa</th>
+                                        <th width="10%">Subtotal</th>
                                         <th width="5%">Aksi</th>
                                     </tr>
                                 </thead>
@@ -119,6 +128,12 @@
                                                 </select>
                                             </td>
                                             <td>
+                                                <input type="text" name="barcode[]" class="form-control barcodeInput text-center"
+                                                    value="{{ old('barcode.' . $index, $detail->barcode_batch ?? '') }}" 
+                                                    placeholder="Input barcode" required>
+                                                <small class="text-muted">Batch baru</small>
+                                            </td>
+                                            <td>
                                                 <input type="text" class="form-control supplierNama bg-light text-center"
                                                     readonly value="{{ $detail->produk->supplier->nama_supplier ?? '-' }}">
                                                 <input type="hidden" name="supplier_id[]" class="supplierId"
@@ -134,14 +149,18 @@
                                             </td>
                                             <td>
                                                 <input type="number" name="jumlah[]" class="form-control jumlah text-end"
-                                                    value="{{ old('jumlah.' . $index, $detail->jumlah) }}" min="1"
-                                                    required>
+                                                    value="{{ old('jumlah.' . $index, $detail->jumlah) }}" min="1" required>
                                             </td>
                                             <td>
                                                 <input type="text" name="harga_beli[]"
                                                     class="form-control hargaBeli text-end bg-light"
                                                     value="{{ number_format(old('harga_beli.' . $index, $detail->harga_beli), 0, ',', '.') }}"
                                                     readonly>
+                                            </td>
+                                            <td>
+                                                <input type="date" name="kadaluwarsa[]" class="form-control kadaluwarsaInput"
+                                                    value="{{ old('kadaluwarsa.' . $index, $detail->kadaluwarsa ? \Carbon\Carbon::parse($detail->kadaluwarsa)->format('Y-m-d') : '') }}" 
+                                                    required>
                                             </td>
                                             <td>
                                                 <input type="text" class="form-control subtotal text-end bg-light"
@@ -165,8 +184,7 @@
                             <div class="d-flex justify-content-between align-items-center">
                                 <h5 class="mb-0 text-dark fw-semibold">Total Pembelian:</h5>
                                 <h4 class="mb-0 text-success fw-bold">
-                                    Rp <span
-                                        id="totalHarga">{{ number_format($pembelian->total_harga, 0, ',', '.') }}</span>
+                                    Rp <span id="totalHarga">{{ number_format($pembelian->total_harga, 0, ',', '.') }}</span>
                                 </h4>
                             </div>
                         </div>
@@ -189,18 +207,15 @@
     {{-- Script --}}
     <script>
         document.addEventListener("DOMContentLoaded", function() {
-            // Format angka ke format Indonesia dengan titik sebagai pemisah ribuan
             function formatNumber(num) {
                 return new Intl.NumberFormat('id-ID').format(num);
             }
 
-            // Parse format number kembali ke angka
             function parseFormattedNumber(str) {
                 if (!str) return 0;
                 return parseFloat(str.toString().replace(/\./g, '').replace(/,/g, ''));
             }
 
-            // Set tanggal dan waktu sekarang
             function setCurrentDateTime() {
                 const options = {
                     weekday: 'long',
@@ -211,8 +226,7 @@
                     minute: '2-digit',
                     second: '2-digit'
                 };
-                document.getElementById('currentDateTime').textContent = new Date().toLocaleDateString('id-ID',
-                    options);
+                document.getElementById('currentDateTime').textContent = new Date().toLocaleDateString('id-ID', options);
             }
 
             setCurrentDateTime();
@@ -235,28 +249,33 @@
                 document.getElementById("totalHarga").textContent = formatNumber(total);
             }
 
-            // Event ketika produk dipilih
             document.addEventListener("change", function(e) {
                 if (e.target.classList.contains("produkSelect")) {
                     let selectedOption = e.target.options[e.target.selectedIndex];
                     let row = e.target.closest("tr");
 
                     if (selectedOption.value) {
-                        // Ambil data dari option
                         let harga = selectedOption.getAttribute("data-harga") || 0;
                         let kategori = selectedOption.getAttribute("data-kategori") || '-';
                         let satuan = selectedOption.getAttribute("data-satuan") || '-';
                         let supplierId = selectedOption.getAttribute("data-supplier-id") || '';
                         let supplierNama = selectedOption.getAttribute("data-supplier-nama") || '-';
 
-                        // Set nilai dengan format
                         row.querySelector(".hargaBeli").value = formatNumber(harga);
                         row.querySelector(".kategoriNama").value = kategori;
                         row.querySelector(".satuanNama").value = satuan;
                         row.querySelector(".supplierNama").value = supplierNama;
                         row.querySelector(".supplierId").value = supplierId;
+
+                        // Clear barcode & kadaluwarsa untuk input baru
+                        row.querySelector(".barcodeInput").value = '';
+                        row.querySelector(".kadaluwarsaInput").value = '';
+                        
+                        // Focus ke barcode
+                        setTimeout(() => {
+                            row.querySelector(".barcodeInput").focus();
+                        }, 100);
                     } else {
-                        // Reset semua field
                         row.querySelector(".hargaBeli").value = '0';
                         row.querySelector(".kategoriNama").value = '';
                         row.querySelector(".satuanNama").value = '';
@@ -268,14 +287,12 @@
                 }
             });
 
-            // Perubahan jumlah
             document.addEventListener("input", function(e) {
                 if (e.target.classList.contains("jumlah")) {
                     hitungTotal();
                 }
             });
 
-            // Tambah baris produk
             document.getElementById("addRow").addEventListener("click", function() {
                 let row = document.querySelector("#produkTable tbody tr").cloneNode(true);
 
@@ -299,7 +316,6 @@
                 hitungTotal();
             });
 
-            // Hapus baris produk
             document.addEventListener("click", function(e) {
                 if (e.target.closest(".removeRow")) {
                     if (document.querySelectorAll("#produkTable tbody tr").length > 1) {
@@ -311,7 +327,6 @@
                 }
             });
 
-            // Hitung total awal
             hitungTotal();
         });
     </script>
@@ -355,6 +370,11 @@
 
         .card {
             border-radius: 0.75rem;
+        }
+
+        .barcodeInput {
+            font-family: 'Courier New', monospace;
+            font-weight: bold;
         }
     </style>
 @endsection

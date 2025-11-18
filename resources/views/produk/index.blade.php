@@ -50,7 +50,7 @@
                                     <th>Harga Beli</th>
                                     <th>Harga Jual</th>
                                     <th>Stok</th>
-                                    <th>Kadaluwarsa</th>
+                                    <th>Kadaluwarsa Terdekat</th>
                                     <th style="width: 16%">Aksi</th>
                                 </tr>
                             </thead>
@@ -86,41 +86,51 @@
                                         <td>{{ $produk->supplier->nama_supplier ?? '-' }}</td>
                                         <td>Rp {{ number_format($produk->harga_beli, 0, ',', '.') }}</td>
                                         <td>Rp {{ number_format($produk->harga_jual, 0, ',', '.') }}</td>
-                                        <td class="text-center">
-                                            <span
-                                                class="badge badge-{{ $produk->stok > 10 ? 'success' : ($produk->stok > 0 ? 'warning' : 'danger') }}">
-                                                {{ $produk->stok }}
-                                            </span>
-                                        </td>
-
-                                        {{-- Kadaluwarsa + Hitung Hari --}}
+                                        
+                                        {{-- ✅ STOK DIHITUNG DARI BATCH --}}
                                         <td class="text-center">
                                             @php
-                                                $now = \Carbon\Carbon::now();
-                                                $kadaluwarsa = \Carbon\Carbon::parse($produk->kadaluwarsa);
-                                                $diff = $now->diffInDays($kadaluwarsa, false);
+                                                $totalStok = $produk->batches->sum('stok');
+                                            @endphp
+                                            <span class="badge badge-{{ $totalStok > 10 ? 'success' : ($totalStok > 0 ? 'warning' : 'danger') }}">
+                                                {{ $totalStok }}
+                                            </span>
+                                            @if($produk->batches->count() > 0)
+                                                <br>
+                                                <small class="text-muted">{{ $produk->batches->count() }} batch</small>
+                                            @endif
+                                        </td>
 
-                                                // Tentukan warna status
-                                                $color = $diff < 0 ? 'danger' : ($diff <= 30 ? 'warning' : 'success');
+                                        {{-- ✅ KADALUWARSA DARI BATCH TERDEKAT --}}
+                                        <td class="text-center">
+                                            @php
+                                                $batchTerdekat = $produk->getBatchTerdekat();
+                                                if ($batchTerdekat) {
+                                                    $now = \Carbon\Carbon::now();
+                                                    $kadaluwarsa = \Carbon\Carbon::parse($batchTerdekat->kadaluwarsa);
+                                                    $diff = $now->diffInDays($kadaluwarsa, false);
+                                                    $color = $diff < 0 ? 'danger' : ($diff <= 30 ? 'warning' : 'success');
+                                                } else {
+                                                    $color = 'secondary';
+                                                }
                                             @endphp
 
-                                            {{-- Baris 1 = Tanggal dengan badge warna --}}
-                                            <span class="badge badge-{{ $color }}">
-                                                {{ $produk->kadaluwarsa->format('d/m/Y') }}
-                                            </span>
-
-                                            {{-- Baris 2 = Teks hari tersisa (warna ngikut badge) --}}
-                                            <div class="mt-1" style="font-size: 12px;">
-                                                @if ($diff < 0)
-                                                    <span class="text-{{ $color }}">Expired {{ abs($diff) }}
-                                                        hari lalu</span>
-                                                @elseif ($diff == 0)
-                                                    <span class="text-{{ $color }}">Kadaluwarsa hari ini</span>
-                                                @else
-                                                    <span class="text-{{ $color }}">{{ $diff }} hari
-                                                        lagi</span>
-                                                @endif
-                                            </div>
+                                            @if($batchTerdekat)
+                                                <span class="badge badge-{{ $color }}">
+                                                    {{ $batchTerdekat->kadaluwarsa->format('d/m/Y') }}
+                                                </span>
+                                                <div class="mt-1" style="font-size: 12px;">
+                                                    @if ($diff < 0)
+                                                        <span class="text-{{ $color }}">Expired {{ abs($diff) }} hari lalu</span>
+                                                    @elseif ($diff == 0)
+                                                        <span class="text-{{ $color }}">Kadaluwarsa hari ini</span>
+                                                    @else
+                                                        <span class="text-{{ $color }}">{{ $diff }} hari lagi</span>
+                                                    @endif
+                                                </div>
+                                            @else
+                                                <span class="badge badge-secondary">Tidak ada batch</span>
+                                            @endif
                                         </td>
 
                                         {{-- Aksi --}}

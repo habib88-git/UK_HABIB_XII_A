@@ -13,6 +13,7 @@ use App\Models\Pembayarans;
 use App\Models\Kategoris;
 use App\Models\DetailPenjualans;
 use App\Models\StockHistory;
+use App\Models\BatchProduk; // ✅ TAMBAH INI
 
 class PenjualanController extends Controller
 {
@@ -28,7 +29,12 @@ class PenjualanController extends Controller
     public function create()
     {
         $pelanggans = Pelanggans::all();
-        $produks = Produks::with(['satuan', 'kategori'])->get();
+        
+        // ✅ Ambil produk yang punya stok (dari batch)
+        $produks = Produks::whereHas('batches', function($q) {
+            $q->where('stok', '>', 0);
+        })->with(['satuan', 'kategori', 'batchesAktif'])->get();
+        
         $kategoris = Kategoris::all();
 
         return view('penjualan.create', compact('pelanggans', 'produks', 'kategoris'));
@@ -52,9 +58,12 @@ class PenjualanController extends Controller
                 $produk = Produks::findOrFail($produk_id);
                 $jumlah = $request->jumlah_produk[$key];
 
-                if ($produk->stok < $jumlah) {
+                // ✅ Cek stok dari batch
+                $stokTersedia = BatchProduk::where('produk_id', $produk_id)->sum('stok');
+                
+                if ($stokTersedia < $jumlah) {
                     DB::rollBack();
-                    return back()->with('error', "Stok {$produk->nama_produk} tidak mencukupi!");
+                    return back()->with('error', "Stok {$produk->nama_produk} tidak mencukupi! Tersedia: {$stokTersedia}");
                 }
 
                 $subtotal = $produk->harga_jual * $jumlah;
@@ -92,45 +101,66 @@ class PenjualanController extends Controller
                 'user_id'           => Auth::id(),
             ]);
 
-            // Simpan detail & kurangi stok + CATAT HISTORY
+            // ✅ FIFO: Process setiap item dengan mengambil batch terdekat kadaluwarsa
             foreach ($request->produk_id as $key => $produk_id) {
                 $produk = Produks::findOrFail($produk_id);
                 $jumlah = $request->jumlah_produk[$key];
                 $subtotal = $produk->harga_jual * $jumlah;
 
-                // Simpan detail penjualan
-                DetailPenjualans::create([
-                    'penjualan_id'  => $penjualan->penjualan_id,
-                    'produk_id'     => $produk_id,
-                    'jumlah_produk' => $jumlah,
-                    'subtotal'      => $subtotal,
-                ]);
+                $stokSebelum = BatchProduk::where('produk_id', $produk_id)->sum('stok');
 
-                // ✅ CATAT STOCK HISTORY - STOK KELUAR
-                $stokSebelum = $produk->stok;
-                $produk->stok -= $jumlah;
-                $produk->save();
+                // ✅ KURANGI STOK MENGGUNAKAN FIFO
+                try {
+                    $batchDipakai = BatchProduk::kurangiStokFIFO($produk_id, $jumlah);
+                } catch (\Exception $e) {
+                    DB::rollBack();
+                    return back()->with('error', $e->getMessage());
+                }
 
-                // Keterangan berdasarkan pelanggan
-                $pelanggan = $request->pelanggan_id 
-                    ? Pelanggans::find($request->pelanggan_id) 
-                    : null;
-                
-                $keterangan = $pelanggan 
-                    ? "Penjualan kepada {$pelanggan->nama_pelanggan}" 
-                    : "Penjualan (Umum)";
+                // ✅ UPDATE STOK MASTER PRODUK
+                $produk->updateStokFromBatch();
 
-                StockHistory::create([
-                    'produk_id' => $produk->produk_id,
-                    'tipe' => 'keluar',
-                    'jumlah' => $jumlah,
-                    'stok_sebelum' => $stokSebelum,
-                    'stok_sesudah' => $produk->stok,
-                    'keterangan' => $keterangan,
-                    'referensi_tipe' => 'penjualan',
-                    'referensi_id' => $penjualan->penjualan_id,
-                    'user_id' => Auth::id(),
-                ]);
+                $stokSesudah = BatchProduk::where('produk_id', $produk_id)->sum('stok');
+
+                // ✅ SIMPAN DETAIL PENJUALAN (BISA MULTIPLE BATCH UNTUK 1 ITEM)
+                foreach ($batchDipakai as $batchInfo) {
+                    // Hitung subtotal proporsional per batch
+                    $subtotalBatch = ($batchInfo['jumlah'] / $jumlah) * $subtotal;
+
+                    DetailPenjualans::create([
+                        'penjualan_id' => $penjualan->penjualan_id,
+                        'produk_id' => $produk_id,
+                        'batch_id' => $batchInfo['batch_id'],
+                        'jumlah_produk' => $batchInfo['jumlah'],
+                        'subtotal' => $subtotalBatch,
+                        'barcode_batch' => $batchInfo['barcode_batch'],
+                        'kadaluwarsa_batch' => $batchInfo['kadaluwarsa'],
+                    ]);
+
+                    // Keterangan berdasarkan pelanggan
+                    $pelanggan = $request->pelanggan_id 
+                        ? Pelanggans::find($request->pelanggan_id) 
+                        : null;
+                    
+                    $keterangan = $pelanggan 
+                        ? "Penjualan kepada {$pelanggan->nama_pelanggan} - Batch: {$batchInfo['barcode_batch']}" 
+                        : "Penjualan (Umum) - Batch: {$batchInfo['barcode_batch']}";
+
+                    // ✅ CATAT STOCK HISTORY PER BATCH
+                    StockHistory::create([
+                        'produk_id' => $produk_id,
+                        'tipe' => 'keluar',
+                        'jumlah' => $batchInfo['jumlah'],
+                        'stok_sebelum' => $stokSebelum,
+                        'stok_sesudah' => $stokSesudah,
+                        'keterangan' => $keterangan,
+                        'referensi_tipe' => 'penjualan',
+                        'referensi_id' => $penjualan->penjualan_id,
+                        'user_id' => Auth::id(),
+                    ]);
+
+                    $stokSebelum = $stokSesudah; // Update untuk batch berikutnya
+                }
             }
 
             // Simpan pembayaran
@@ -147,7 +177,7 @@ class PenjualanController extends Controller
 
             // Redirect dengan data transaksi
             return redirect()->route('penjualan.create')->with([
-                'success' => 'Transaksi berhasil disimpan',
+                'success' => 'Transaksi berhasil disimpan dengan sistem FIFO!',
                 'penjualan_id' => $penjualan->penjualan_id,
                 'metode_pembayaran' => $request->metode,
                 'total_bayar' => $totalSetelahDiskon
@@ -166,6 +196,7 @@ class PenjualanController extends Controller
             'pelanggan',
             'user',
             'detailPenjualans.produk',
+            'detailPenjualans.batch',
             'pembayaran'
         ])->findOrFail($id);
 
@@ -206,8 +237,13 @@ class PenjualanController extends Controller
 
     public function show(string $id)
     {
-        $penjualan = Penjualans::with(['pelanggan','user','detailPenjualans.produk','pembayaran'])
-        ->findOrFail($id);
+        $penjualan = Penjualans::with([
+            'pelanggan',
+            'user',
+            'detailPenjualans.produk',
+            'detailPenjualans.batch',
+            'pembayaran'
+        ])->findOrFail($id);
 
         return view('penjualan.show', compact('penjualan'));
     }
@@ -224,32 +260,40 @@ class PenjualanController extends Controller
 
     public function destroy(string $id)
     {
-        // ✅ TAMBAH FUNGSI HAPUS DENGAN KEMBALIKAN STOK
+        // ✅ HAPUS DENGAN KEMBALIKAN STOK KE BATCH
         $penjualan = Penjualans::findOrFail($id);
 
         DB::beginTransaction();
 
         try {
-            // Kembalikan stok dan catat history
+            // Kembalikan stok ke batch
             foreach ($penjualan->detailPenjualans as $detail) {
-                $produk = Produks::find($detail->produk_id);
-                if ($produk) {
-                    $stokSebelum = $produk->stok;
-                    $produk->stok += $detail->jumlah_produk;
-                    $produk->save();
+                if ($detail->batch_id) {
+                    $batch = BatchProduk::find($detail->batch_id);
+                    if ($batch) {
+                        $stokSebelum = BatchProduk::where('produk_id', $batch->produk_id)->sum('stok');
+                        
+                        $batch->stok += $detail->jumlah_produk;
+                        $batch->save();
 
-                    // CATAT STOCK HISTORY - STOK MASUK (KOREKSI)
-                    StockHistory::create([
-                        'produk_id' => $produk->produk_id,
-                        'tipe' => 'masuk',
-                        'jumlah' => $detail->jumlah_produk,
-                        'stok_sebelum' => $stokSebelum,
-                        'stok_sesudah' => $produk->stok,
-                        'keterangan' => 'Koreksi: Hapus penjualan #' . $penjualan->penjualan_id,
-                        'referensi_tipe' => 'penjualan',
-                        'referensi_id' => $penjualan->penjualan_id,
-                        'user_id' => Auth::id(),
-                    ]);
+                        $stokSesudah = BatchProduk::where('produk_id', $batch->produk_id)->sum('stok');
+
+                        // Update stok master
+                        $batch->produk->updateStokFromBatch();
+
+                        // CATAT STOCK HISTORY
+                        StockHistory::create([
+                            'produk_id' => $batch->produk_id,
+                            'tipe' => 'masuk',
+                            'jumlah' => $detail->jumlah_produk,
+                            'stok_sebelum' => $stokSebelum,
+                            'stok_sesudah' => $stokSesudah,
+                            'keterangan' => 'Koreksi: Hapus penjualan #' . $penjualan->penjualan_id,
+                            'referensi_tipe' => 'penjualan',
+                            'referensi_id' => $penjualan->penjualan_id,
+                            'user_id' => Auth::id(),
+                        ]);
+                    }
                 }
             }
 

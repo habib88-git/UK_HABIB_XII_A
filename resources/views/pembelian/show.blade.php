@@ -36,12 +36,6 @@
                             <strong>{{ $pembelian->user->name ?? '-' }}</strong>
                         </div>
                     </div>
-                    <div class="col-md-4">
-                        <div class="border-start border-info border-3 ps-3">
-                            <small class="text-muted d-block">Supplier</small>
-                            <strong>{{ $pembelian->supplier->nama_supplier ?? '-' }}</strong>
-                        </div>
-                    </div>
                 </div>
 
                 <hr>
