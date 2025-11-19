@@ -6,6 +6,7 @@ use Illuminate\Http\Request;
 use App\Models\StockHistory;
 use App\Models\Produks;
 use App\Models\Kategoris;
+use Barryvdh\DomPDF\Facade\Pdf; // ✅ TAMBAH INI
 
 class StockHistoryController extends Controller
 {
@@ -51,10 +52,9 @@ class StockHistoryController extends Controller
         return view('stock-history.index', compact('histories', 'produks', 'kategoris'));
     }
 
-    // Lihat history per produk
     public function show($produkId)
     {
-        $produk = Produks::with(['kategori', 'satuan', 'supplier'])->findOrFail($produkId);
+        $produk = Produks::with(['kategori', 'satuan', 'supplier', 'batches'])->findOrFail($produkId);
         
         $histories = StockHistory::where('produk_id', $produkId)
             ->with('user')
@@ -64,7 +64,6 @@ class StockHistoryController extends Controller
         return view('stock-history.show', compact('produk', 'histories'));
     }
 
-    // Download PDF History Stock
     public function downloadPdf(Request $request)
     {
         $query = StockHistory::with(['produk.kategori', 'produk.satuan', 'user']);
@@ -105,7 +104,8 @@ class StockHistoryController extends Controller
             'tanggal_sampai' => $request->tanggal_sampai ?? '-',
         ];
 
-        $pdf = \PDF::loadView('stock-history.pdf', compact('histories', 'filterInfo'))
+        // ✅ UBAH INI: Konsisten dengan ProdukController
+        $pdf = Pdf::loadView('stock-history.pdf', compact('histories', 'filterInfo'))
             ->setPaper('a4', 'landscape');
 
         return $pdf->stream('history-stock-' . date('Y-m-d-His') . '.pdf');

@@ -26,11 +26,12 @@ return new class extends Migration
     /**
      * Reverse the migrations.
      */
-    public function down(): void
+    public function down()
     {
         Schema::table('tbl_produks', function (Blueprint $table) {
-            $table->dropForeign(['supplier_id']);
-            $table->dropColumn('supplier_id');
+            if (Schema::hasColumn('tbl_produks', 'supplier_id')) {
+                $table->dropColumn('supplier_id'); // otomatis drop FK
+            }
         });
     }
 };

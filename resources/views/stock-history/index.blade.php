@@ -19,7 +19,7 @@
             </div>
         </div>
 
-        {{-- Filter Card --}}l,
+        {{-- Filter Card --}}
         <div class="card shadow mb-4">
             <div class="card-header py-3">
                 <h6 class="m-0 font-weight-bold text-primary">
@@ -176,16 +176,7 @@
                                             <div class="mb-1">
                                                 <small class="text-dark">{{ $history->keterangan ?? '-' }}</small>
                                             </div>
-                                            @if($history->referensi_tipe && $history->referensi_id)
-                                                <span class="badge badge-light">
-                                                    <i class="fas fa-link"></i> 
-                                                    {{ ucfirst($history->referensi_tipe) }} #{{ $history->referensi_id }}
-                                                </span>
-                                            @else
-                                                <span class="badge badge-secondary">
-                                                    <i class="fas fa-info-circle"></i> Manual/System
-                                                </span>
-                                            @endif
+                                            {{-- HAPUS BAGIAN REFERENSI --}}
                                         </td>
                                         <td class="text-center">
                                             <small>{{ $history->user->name ?? '-' }}</small>

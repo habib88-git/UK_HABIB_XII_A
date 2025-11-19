@@ -58,19 +58,69 @@
                                 @forelse($produks as $produk)
                                     <tr>
                                         <td class="text-center">{{ $loop->iteration }}</td>
+                                        
+                                        {{-- ✅ KOLOM BARCODE - OPSI 1 --}}
                                         <td class="text-center">
                                             <div class="barcode-container">
                                                 @php
-                                                    // Langsung pakai CODE128 aja biar universal
-                                                    try {
-                                                        echo DNS1D::getBarcodeHTML($produk->barcode, 'C128', 1.5, 40);
-                                                    } catch (\Exception $e) {
-                                                        echo '<div class="text-danger small">Barcode Error</div>';
-                                                    }
+                                                    // ✅ AMBIL BATCH AKTIF FIFO
+                                                    $batchAktif = $produk->batches()
+                                                        ->where('stok', '>', 0)
+                                                        ->orderBy('kadaluwarsa', 'asc')
+                                                        ->first();
+                                                    
+                                                    $barcodeDisplay = $batchAktif ? $batchAktif->barcode_batch : $produk->barcode;
+                                                    $jumlahBatchAktif = $produk->batches()->where('stok', '>', 0)->count();
                                                 @endphp
-                                                <small class="d-block mt-1">{{ $produk->barcode }}</small>
+                                                
+                                                @if($batchAktif)
+                                                    @php
+                                                        try {
+                                                            echo DNS1D::getBarcodeHTML($barcodeDisplay, 'C128', 1.5, 40);
+                                                        } catch (\Exception $e) {
+                                                            echo '<div class="text-danger small">Barcode Error</div>';
+                                                        }
+                                                    @endphp
+                                                    <small class="d-block mt-1">
+                                                        <code>{{ $barcodeDisplay }}</code>
+                                                    </small>
+                                                    
+                                                    <div class="mt-2">
+                                                        <span class="badge badge-success" data-toggle="tooltip" 
+                                                              title="Batch FIFO - Akan terjual pertama">
+                                                            <i class="fas fa-check-circle"></i> Batch Aktif
+                                                        </span>
+                                                        
+                                                        @if($jumlahBatchAktif > 1)
+                                                            <span class="badge badge-info" data-toggle="tooltip" 
+                                                                  title="Total {{ $jumlahBatchAktif }} batch dengan stok tersedia">
+                                                                <i class="fas fa-layer-group"></i> {{ $jumlahBatchAktif }} Batch
+                                                            </span>
+                                                        @endif
+                                                    </div>
+                                                    
+                                                    <small class="text-muted d-block mt-1">
+                                                        <i class="fas fa-box"></i> Stok batch: {{ $batchAktif->stok }}
+                                                    </small>
+                                                @else
+                                                    @php
+                                                        try {
+                                                            echo DNS1D::getBarcodeHTML($produk->barcode, 'C128', 1.5, 40);
+                                                        } catch (\Exception $e) {
+                                                            echo '<div class="text-danger small">Barcode Error</div>';
+                                                        }
+                                                    @endphp
+                                                    <small class="d-block mt-1">
+                                                        <code>{{ $produk->barcode }}</code>
+                                                    </small>
+                                                    <span class="badge badge-warning mt-2">
+                                                        <i class="fas fa-exclamation-triangle"></i> Stok Habis
+                                                    </span>
+                                                    <small class="text-muted d-block mt-1">Barcode Master</small>
+                                                @endif
                                             </div>
                                         </td>
+
                                         <td class="text-center">
                                             @if ($produk->photo)
                                                 <img src="{{ asset('storage/' . $produk->photo) }}"
@@ -87,18 +137,33 @@
                                         <td>Rp {{ number_format($produk->harga_beli, 0, ',', '.') }}</td>
                                         <td>Rp {{ number_format($produk->harga_jual, 0, ',', '.') }}</td>
                                         
-                                        {{-- ✅ STOK DIHITUNG DARI BATCH --}}
+                                        {{-- ✅ STOK DIHITUNG DARI BATCH - OPSI 1 --}}
                                         <td class="text-center">
                                             @php
                                                 $totalStok = $produk->batches->sum('stok');
+                                                $jumlahBatch = $produk->batches->count();
+                                                $jumlahBatchAktif = $produk->batches->where('stok', '>', 0)->count();
                                             @endphp
-                                            <span class="badge badge-{{ $totalStok > 10 ? 'success' : ($totalStok > 0 ? 'warning' : 'danger') }}">
-                                                {{ $totalStok }}
-                                            </span>
-                                            @if($produk->batches->count() > 0)
-                                                <br>
-                                                <small class="text-muted">{{ $produk->batches->count() }} batch</small>
-                                            @endif
+                                            
+                                            <div class="stok-info">
+                                                <span class="badge badge-{{ $totalStok > 10 ? 'success' : ($totalStok > 0 ? 'warning' : 'danger') }}" 
+                                                      style="font-size: 1rem; padding: 6px 12px;">
+                                                    <i class="fas fa-boxes"></i> {{ $totalStok }}
+                                                </span>
+                                                
+                                                @if($jumlahBatch > 0)
+                                                    <div class="mt-2">
+                                                        <small class="text-muted">
+                                                            <i class="fas fa-layer-group"></i> 
+                                                            {{ $jumlahBatchAktif }} aktif / {{ $jumlahBatch }} total
+                                                        </small>
+                                                    </div>
+                                                @else
+                                                    <div class="mt-2">
+                                                        <small class="text-muted">Belum ada batch</small>
+                                                    </div>
+                                                @endif
+                                            </div>
                                         </td>
 
                                         {{-- ✅ KADALUWARSA DARI BATCH TERDEKAT --}}
@@ -203,6 +268,68 @@
             align-items: center;
             justify-content: center;
         }
+        
+        /* ✅ STYLES BARU UNTUK OPSI 1 */
+        .barcode-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 12px 8px;
+            min-height: 120px;
+        }
+        
+        .barcode-container code {
+            font-size: 0.875rem;
+            background: #f8f9fa;
+            padding: 4px 10px;
+            border-radius: 4px;
+            border: 1px solid #dee2e6;
+            font-weight: 600;
+            color: #495057;
+            letter-spacing: 0.5px;
+        }
+        
+        .barcode-container .badge {
+            font-size: 0.75rem;
+            padding: 4px 10px;
+            margin: 0 2px;
+            font-weight: 600;
+        }
+        
+        .barcode-container small {
+            font-size: 0.75rem;
+            line-height: 1.4;
+        }
+        
+        .stok-info {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .stok-info .badge {
+            font-weight: 700;
+        }
+        
+        /* Hover effect untuk badge */
+        .badge[data-toggle="tooltip"] {
+            cursor: help;
+            transition: all 0.2s;
+        }
+        
+        .badge[data-toggle="tooltip"]:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+        }
+        
+        /* Animasi untuk barcode */
+        .barcode-container:hover {
+            background-color: rgba(13, 110, 253, 0.03);
+            border-radius: 8px;
+            transition: background-color 0.2s;
+        }
     </style>
 @endpush
 
@@ -213,12 +340,25 @@
                 "language": {
                     "url": "//cdn.datatables.net/plug-ins/1.10.24/i18n/Indonesian.json"
                 },
-                "order": [
-                    [0, "asc"]
+                "order": [[0, "asc"]],
+                "pageLength": 25,
+                "columnDefs": [
+                    { "orderable": false, "targets": [1, 2, 11] } // Barcode, Photo, Aksi
                 ]
             });
 
-            $('[data-toggle="tooltip"]').tooltip();
+            // ✅ Inisialisasi tooltip
+            $('[data-toggle="tooltip"]').tooltip({
+                trigger: 'hover',
+                delay: { show: 300, hide: 100 }
+            });
+            
+            // ✅ Refresh tooltip saat ganti halaman
+            $('#dataTableHover').on('page.dt', function() {
+                setTimeout(function() {
+                    $('[data-toggle="tooltip"]').tooltip();
+                }, 100);
+            });
         });
     </script>
 @endpush
