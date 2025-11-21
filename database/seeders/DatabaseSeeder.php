@@ -11,7 +11,11 @@ class DatabaseSeeder extends Seeder
      */
     public function run(): void
     {
-        // Jalankan seeder Indonesia
-        //
+        $this->call([
+        UserSeeder::class,
+        PelangganSeeder::class,
+        KategoriSeeder::class,
+        SatuanSeeder::class,
+        ]);
     }
 }

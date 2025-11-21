@@ -54,36 +54,40 @@ class BatchProduk extends Model
     }
 
     /**
-     * ✅ Method FIFO - Ambil batch dengan kadaluwarsa terdekat
+     * ✅ Method FEFO (First Expired First Out)
+     * Ambil batch dengan kadaluwarsa TERDEKAT terlebih dahulu
      * Digunakan saat penjualan untuk mengurangi stok
      */
-    public static function getBatchFIFO($produkId, $jumlahDibutuhkan)
+    public static function getBatchFEFO($produkId, $jumlahDibutuhkan)
     {
         return self::where('produk_id', $produkId)
             ->where('stok', '>', 0)
-            ->orderBy('kadaluwarsa', 'asc')      // Prioritas 1: Kadaluwarsa terdekat
-            ->orderBy('created_at', 'asc')       // Prioritas 2: Yang lebih dulu masuk
+            ->orderBy('kadaluwarsa', 'asc')      // ✅ PRIORITAS UTAMA: Kadaluwarsa terdekat
+            ->orderBy('created_at', 'asc')       // ✅ PRIORITAS KEDUA: Yang lebih dulu masuk (jika tanggal ED sama)
             ->get();
     }
 
     /**
-     * ✅ Method untuk mengurangi stok batch (untuk penjualan)
+     * ✅ Method untuk mengurangi stok batch dengan sistem FEFO
      * Return: array detail batch yang digunakan
      */
-    public static function kurangiStokFIFO($produkId, $jumlahDibutuhkan)
+    public static function kurangiStokFEFO($produkId, $jumlahDibutuhkan)
     {
-        $batches = self::getBatchFIFO($produkId, $jumlahDibutuhkan);
+        $batches = self::getBatchFEFO($produkId, $jumlahDibutuhkan);
         $sisaKebutuhan = $jumlahDibutuhkan;
         $batchDipakai = [];
 
         foreach ($batches as $batch) {
             if ($sisaKebutuhan <= 0) break;
 
+            // Ambil sebanyak mungkin dari batch ini (maksimal sesuai stok batch)
             $ambil = min($batch->stok, $sisaKebutuhan);
             
+            // Kurangi stok batch
             $batch->stok -= $ambil;
             $batch->save();
 
+            // Catat batch yang dipakai
             $batchDipakai[] = [
                 'batch_id' => $batch->batch_id,
                 'barcode_batch' => $batch->barcode_batch,
@@ -95,10 +99,57 @@ class BatchProduk extends Model
             $sisaKebutuhan -= $ambil;
         }
 
+        // Validasi: pastikan semua kebutuhan terpenuhi
         if ($sisaKebutuhan > 0) {
             throw new \Exception("Stok tidak cukup! Kurang {$sisaKebutuhan} unit.");
         }
 
         return $batchDipakai;
+    }
+
+    /**
+     * ✅ Helper: Cek apakah batch sudah expired
+     */
+    public function isExpired()
+    {
+        return $this->kadaluwarsa->isPast();
+    }
+
+    /**
+     * ✅ Helper: Hitung sisa hari sampai kadaluwarsa
+     */
+    public function daysUntilExpired()
+    {
+        return now()->diffInDays($this->kadaluwarsa, false);
+    }
+
+    /**
+     * ✅ Helper: Status kadaluwarsa (untuk UI)
+     */
+    public function getStatusKadaluwarsa()
+    {
+        $days = $this->daysUntilExpired();
+        
+        if ($days < 0) {
+            return [
+                'badge' => 'danger',
+                'text' => 'Expired ' . abs($days) . ' hari lalu'
+            ];
+        } elseif ($days == 0) {
+            return [
+                'badge' => 'danger',
+                'text' => 'Kadaluwarsa hari ini'
+            ];
+        } elseif ($days <= 30) {
+            return [
+                'badge' => 'warning',
+                'text' => $days . ' hari lagi'
+            ];
+        } else {
+            return [
+                'badge' => 'success',
+                'text' => $days . ' hari lagi'
+            ];
+        }
     }
 }

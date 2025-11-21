@@ -26,13 +26,15 @@
             </div>
         @endif
 
-        {{-- Alert Info --}}
+        {{-- Alert Info FEFO --}}
         <div class="alert alert-info alert-dismissible fade show" role="alert">
-            <strong><i class="fas fa-info-circle"></i> Informasi Sistem Batch!</strong>
+            <strong><i class="fas fa-info-circle"></i> Sistem FEFO (First Expired First Out)</strong>
             <ul class="mb-0 mt-2">
                 <li><strong>Barcode:</strong> Barcode master sebagai identitas produk utama</li>
                 <li><strong>Stok Awal:</strong> Jika diisi, sistem akan otomatis membuat batch pertama</li>
+                <li><strong>FEFO System:</strong> Saat penjualan, sistem otomatis menjual batch dengan <strong>tanggal kadaluwarsa terdekat</strong> terlebih dahulu</li>
                 <li><strong>Batch Selanjutnya:</strong> Bisa ditambahkan melalui menu Pembelian dengan barcode & kadaluwarsa berbeda</li>
+                <li><strong>Keuntungan FEFO:</strong> Mengurangi waste produk expired, meningkatkan rotasi stok yang efisien</li>
             </ul>
             <button type="button" class="close" data-dismiss="alert" aria-label="Close">
                 <span aria-hidden="true">&times;</span>
@@ -43,7 +45,7 @@
         <div class="card shadow-sm mb-4">
             <div class="card-header py-3">
                 <h6 class="m-0 font-weight-bold text-primary">
-                    <i class="fas fa-pen me-1"></i> Form Tambah Produk
+                    <i class="fas fa-pen me-1"></i> Form Tambah Produk (FEFO System)
                 </h6>
             </div>
             <div class="card-body">
@@ -97,11 +99,16 @@
                         </div>
 
                         <div class="col-md-6 mb-3">
-                            <label for="kadaluwarsa" class="form-label">Tanggal Kadaluwarsa <span class="text-danger">*</span></label>
+                            <label for="kadaluwarsa" class="form-label">
+                                Tanggal Kadaluwarsa <span class="text-danger">*</span>
+                                <span class="badge badge-primary ml-2" data-toggle="tooltip" title="FEFO: Batch dengan kadaluwarsa terdekat akan terjual pertama">
+                                    <i class="fas fa-calendar-times"></i> FEFO
+                                </span>
+                            </label>
                             <input type="date" id="kadaluwarsa" name="kadaluwarsa" class="form-control"
                                 value="{{ old('kadaluwarsa') }}" required>
                             <small class="text-muted">
-                                <i class="fas fa-calendar-alt"></i> Tanggal kadaluwarsa untuk batch pertama
+                                <i class="fas fa-calendar-alt"></i> Tanggal kadaluwarsa untuk batch pertama (akan diprioritaskan saat penjualan)
                             </small>
                         </div>
 
@@ -170,6 +177,9 @@
             // Auto-focus ke input barcode saat halaman dimuat
             document.addEventListener('DOMContentLoaded', function() {
                 document.getElementById('barcode').focus();
+                
+                // ✅ Inisialisasi tooltip
+                $('[data-toggle="tooltip"]').tooltip();
             });
 
             // Auto-pindah ke nama produk setelah scan barcode (enter)

@@ -26,12 +26,13 @@
             </div>
         @endif
 
-        {{-- Alert Info Batch --}}
+        {{-- Alert Info Batch & FEFO --}}
         <div class="alert alert-warning alert-dismissible fade show" role="alert">
             <strong><i class="fas fa-exclamation-triangle"></i> Perhatian!</strong>
             <ul class="mb-0 mt-2">
-                <li><strong>Stok & Kadaluwarsa:</strong> Tidak bisa diedit di sini (dikelola otomatis dari batch)</li>
-                <li><strong>Lihat Batch:</strong> Scroll ke bawah untuk melihat detail semua batch produk ini</li>
+                <li><strong>Stok & Kadaluwarsa:</strong> Tidak bisa diedit di sini (dikelola otomatis dari batch dengan sistem FEFO)</li>
+                <li><strong>FEFO System:</strong> Batch dengan kadaluwarsa terdekat akan otomatis terjual pertama</li>
+                <li><strong>Lihat Batch:</strong> Scroll ke bawah untuk melihat detail semua batch produk ini (diurutkan berdasarkan kadaluwarsa)</li>
                 <li><strong>Tambah Stok:</strong> Gunakan menu <strong>Pembelian</strong> untuk menambah batch baru</li>
             </ul>
             <button type="button" class="close" data-dismiss="alert" aria-label="Close">
@@ -43,7 +44,7 @@
         <div class="card shadow-sm mb-4">
             <div class="card-header py-3">
                 <h6 class="m-0 font-weight-bold text-primary">
-                    <i class="fas fa-pen me-1"></i> Form Edit Produk
+                    <i class="fas fa-pen me-1"></i> Form Edit Produk (FEFO System)
                 </h6>
             </div>
             <div class="card-body">
@@ -97,20 +98,26 @@
                             <input type="text" class="form-control bg-light" 
                                 value="{{ $produk->stokTersedia() }} unit (dari {{ $produk->batches->count() }} batch)" readonly>
                             <small class="text-muted">
-                                <i class="fas fa-info-circle"></i> Stok dihitung otomatis dari batch
+                                <i class="fas fa-info-circle"></i> Stok dihitung otomatis dari batch (sistem FEFO)
                             </small>
                         </div>
 
-                        {{-- ✅ KADALUWARSA TERDEKAT (READ-ONLY) --}}
+                        {{-- ✅ KADALUWARSA TERDEKAT (READ-ONLY) - FEFO --}}
                         <div class="col-md-6 mb-3">
-                            <label class="form-label">Kadaluwarsa Terdekat</label>
+                            <label class="form-label">
+                                Kadaluwarsa Terdekat (FEFO)
+                                <span class="badge badge-primary ml-2" data-toggle="tooltip" 
+                                      title="Batch ini akan terjual pertama karena kadaluwarsa terdekat">
+                                    <i class="fas fa-calendar-times"></i> FEFO
+                                </span>
+                            </label>
                             @php
                                 $batchTerdekat = $produk->getBatchTerdekat();
                             @endphp
                             <input type="text" class="form-control bg-light" 
                                 value="{{ $batchTerdekat ? $batchTerdekat->kadaluwarsa->format('d/m/Y') : 'Tidak ada batch' }}" readonly>
                             <small class="text-muted">
-                                <i class="fas fa-calendar-alt"></i> Dari batch dengan kadaluwarsa paling dekat
+                                <i class="fas fa-calendar-alt"></i> Dari batch dengan kadaluwarsa paling dekat (prioritas penjualan)
                             </small>
                         </div>
 
@@ -203,15 +210,18 @@
             </div>
         </div>
 
-        {{-- ✅ TABEL BATCH PRODUK --}}
+        {{-- ✅ TABEL BATCH PRODUK (DIURUTKAN FEFO) --}}
         <div class="card shadow-sm mb-4">
             <div class="card-header py-3 bg-info text-white">
                 <h6 class="m-0 font-weight-bold">
-                    <i class="fas fa-layer-group me-2"></i> Detail Batch Produk
+                    <i class="fas fa-layer-group me-2"></i> Detail Batch Produk (Urutan FEFO)
                 </h6>
             </div>
             <div class="card-body">
                 @if($produk->batches->count() > 0)
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle"></i> <strong>Sistem FEFO:</strong> Batch diurutkan berdasarkan tanggal kadaluwarsa terdekat. Batch paling atas akan terjual pertama.
+                    </div>
                     <div class="table-responsive">
                         <table class="table table-bordered table-hover align-middle">
                             <thead class="table-light text-center">
@@ -223,32 +233,31 @@
                                     <th width="15%">Harga Beli</th>
                                     <th width="15%">Sumber</th>
                                     <th width="15%">Status</th>
+                                    <th width="10%">Prioritas FEFO</th>
                                 </tr>
                             </thead>
                             <tbody>
-                                @foreach($produk->batches as $index => $batch)
+                                @php
+                                    // ✅ Sort berdasarkan FEFO (kadaluwarsa terdekat)
+                                    $batchesSorted = $produk->batches->sortBy([
+                                        ['kadaluwarsa', 'asc'],
+                                        ['created_at', 'asc']
+                                    ]);
+                                @endphp
+                                @foreach($batchesSorted as $index => $batch)
                                     @php
-                                        $now = \Carbon\Carbon::now();
-                                        $kadaluwarsa = \Carbon\Carbon::parse($batch->kadaluwarsa);
-                                        $diff = $now->diffInDays($kadaluwarsa, false);
-                                        
-                                        if ($diff < 0) {
-                                            $badgeColor = 'danger';
-                                            $statusText = 'Expired ' . abs($diff) . ' hari lalu';
-                                        } elseif ($diff == 0) {
-                                            $badgeColor = 'danger';
-                                            $statusText = 'Kadaluwarsa hari ini';
-                                        } elseif ($diff <= 30) {
-                                            $badgeColor = 'warning';
-                                            $statusText = $diff . ' hari lagi';
-                                        } else {
-                                            $badgeColor = 'success';
-                                            $statusText = $diff . ' hari lagi';
-                                        }
+                                        $statusED = $batch->getStatusKadaluwarsa();
                                     @endphp
-                                    <tr>
+                                    <tr class="{{ $batch->stok > 0 && $index == 0 ? 'table-success' : '' }}">
                                         <td class="text-center">{{ $index + 1 }}</td>
-                                        <td><code>{{ $batch->barcode_batch }}</code></td>
+                                        <td>
+                                            <code>{{ $batch->barcode_batch }}</code>
+                                            @if($batch->stok > 0 && $index == 0)
+                                                <span class="badge badge-success ml-2">
+                                                    <i class="fas fa-star"></i> Akan Terjual Pertama
+                                                </span>
+                                            @endif
+                                        </td>
                                         <td class="text-center">
                                             <span class="badge badge-{{ $batch->stok > 0 ? 'success' : 'secondary' }}">
                                                 {{ $batch->stok }}
@@ -269,9 +278,19 @@
                                             @endif
                                         </td>
                                         <td class="text-center">
-                                            <span class="badge badge-{{ $badgeColor }}">
-                                                {{ $statusText }}
+                                            <span class="badge badge-{{ $statusED['badge'] }}">
+                                                {{ $statusED['text'] }}
                                             </span>
+                                        </td>
+                                        <td class="text-center">
+                                            @if($batch->stok > 0)
+                                                <span class="badge badge-{{ $index == 0 ? 'danger' : ($index == 1 ? 'warning' : 'info') }}" 
+                                                      style="font-size: 1rem;">
+                                                    #{{ $index + 1 }}
+                                                </span>
+                                            @else
+                                                <span class="badge badge-secondary">Habis</span>
+                                            @endif
                                         </td>
                                     </tr>
                                 @endforeach
@@ -282,7 +301,7 @@
                                     <th class="text-center">
                                         <span class="badge badge-primary">{{ $produk->batches->sum('stok') }}</span>
                                     </th>
-                                    <th colspan="4"></th>
+                                    <th colspan="5"></th>
                                 </tr>
                             </tfoot>
                         </table>
@@ -319,5 +338,10 @@
             if (!angka) return '0';
             return angka.toString().replace(/\B(?=(\d{3})+(?!\d))/g, '.');
         }
+        
+        // ✅ Inisialisasi tooltip
+        $(document).ready(function() {
+            $('[data-toggle="tooltip"]').tooltip();
+        });
     </script>
 @endpush

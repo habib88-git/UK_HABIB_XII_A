@@ -29,12 +29,21 @@
             </div>
         @endif
 
+        {{-- Info FEFO --}}
+        <div class="alert alert-info alert-dismissible fade show" role="alert">
+            <strong><i class="fas fa-info-circle"></i> Sistem FEFO (First Expired First Out)</strong>
+            <p class="mb-0 mt-2">Sistem otomatis menjual produk dengan <strong>tanggal kadaluwarsa terdekat</strong> terlebih dahulu untuk meminimalkan waste. Barcode yang ditampilkan adalah batch dengan kadaluwarsa paling dekat.</p>
+            <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+                <span aria-hidden="true">&times;</span>
+            </button>
+        </div>
+
         {{-- DataTable Card --}}
         <div class="row">
             <div class="col-lg-12">
                 <div class="card mb-4">
                     <div class="card-header py-3 d-flex flex-row align-items-center justify-content-between">
-                        <h6 class="m-0 font-weight-bold text-primary">Data Produk</h6>
+                        <h6 class="m-0 font-weight-bold text-primary">Data Produk (FEFO System)</h6>
                     </div>
                     <div class="table-responsive p-3">
                         <table class="table table-bordered align-items-center table-hover" id="dataTableHover">
@@ -59,21 +68,22 @@
                                     <tr>
                                         <td class="text-center">{{ $loop->iteration }}</td>
                                         
-                                        {{-- ✅ KOLOM BARCODE - OPSI 1 --}}
+                                        {{-- ✅ KOLOM BARCODE - FEFO (Kadaluwarsa Terdekat) --}}
                                         <td class="text-center">
                                             <div class="barcode-container">
                                                 @php
-                                                    // ✅ AMBIL BATCH AKTIF FIFO
-                                                    $batchAktif = $produk->batches()
+                                                    // ✅ AMBIL BATCH FEFO (kadaluwarsa terdekat)
+                                                    $batchFEFO = $produk->batches()
                                                         ->where('stok', '>', 0)
-                                                        ->orderBy('kadaluwarsa', 'asc')
+                                                        ->orderBy('kadaluwarsa', 'asc') // FEFO: Expired First
+                                                        ->orderBy('created_at', 'asc')
                                                         ->first();
                                                     
-                                                    $barcodeDisplay = $batchAktif ? $batchAktif->barcode_batch : $produk->barcode;
+                                                    $barcodeDisplay = $batchFEFO ? $batchFEFO->barcode_batch : $produk->barcode;
                                                     $jumlahBatchAktif = $produk->batches()->where('stok', '>', 0)->count();
                                                 @endphp
                                                 
-                                                @if($batchAktif)
+                                                @if($batchFEFO)
                                                     @php
                                                         try {
                                                             echo DNS1D::getBarcodeHTML($barcodeDisplay, 'C128', 1.5, 40);
@@ -86,9 +96,12 @@
                                                     </small>
                                                     
                                                     <div class="mt-2">
-                                                        <span class="badge badge-success" data-toggle="tooltip" 
-                                                              title="Batch FIFO - Akan terjual pertama">
-                                                            <i class="fas fa-check-circle"></i> Batch Aktif
+                                                        @php
+                                                            $statusED = $batchFEFO->getStatusKadaluwarsa();
+                                                        @endphp
+                                                        <span class="badge badge-{{ $statusED['badge'] }}" data-toggle="tooltip" 
+                                                              title="Batch FEFO - Akan terjual pertama karena kadaluwarsa terdekat">
+                                                            <i class="fas fa-calendar-times"></i> {{ $statusED['text'] }}
                                                         </span>
                                                         
                                                         @if($jumlahBatchAktif > 1)
@@ -100,7 +113,7 @@
                                                     </div>
                                                     
                                                     <small class="text-muted d-block mt-1">
-                                                        <i class="fas fa-box"></i> Stok batch: {{ $batchAktif->stok }}
+                                                        <i class="fas fa-box"></i> Stok batch: {{ $batchFEFO->stok }}
                                                     </small>
                                                 @else
                                                     @php
@@ -137,7 +150,7 @@
                                         <td>Rp {{ number_format($produk->harga_beli, 0, ',', '.') }}</td>
                                         <td>Rp {{ number_format($produk->harga_jual, 0, ',', '.') }}</td>
                                         
-                                        {{-- ✅ STOK DIHITUNG DARI BATCH - OPSI 1 --}}
+                                        {{-- ✅ STOK DIHITUNG DARI BATCH --}}
                                         <td class="text-center">
                                             @php
                                                 $totalStok = $produk->batches->sum('stok');
@@ -166,32 +179,25 @@
                                             </div>
                                         </td>
 
-                                        {{-- ✅ KADALUWARSA DARI BATCH TERDEKAT --}}
+                                        {{-- ✅ KADALUWARSA DARI BATCH TERDEKAT (FEFO) --}}
                                         <td class="text-center">
                                             @php
                                                 $batchTerdekat = $produk->getBatchTerdekat();
-                                                if ($batchTerdekat) {
-                                                    $now = \Carbon\Carbon::now();
-                                                    $kadaluwarsa = \Carbon\Carbon::parse($batchTerdekat->kadaluwarsa);
-                                                    $diff = $now->diffInDays($kadaluwarsa, false);
-                                                    $color = $diff < 0 ? 'danger' : ($diff <= 30 ? 'warning' : 'success');
-                                                } else {
-                                                    $color = 'secondary';
-                                                }
                                             @endphp
 
                                             @if($batchTerdekat)
-                                                <span class="badge badge-{{ $color }}">
+                                                @php
+                                                    $statusED = $batchTerdekat->getStatusKadaluwarsa();
+                                                @endphp
+                                                <span class="badge badge-{{ $statusED['badge'] }}" data-toggle="tooltip"
+                                                      title="Batch ini akan terjual pertama (FEFO)">
+                                                    <i class="fas fa-calendar-alt"></i>
                                                     {{ $batchTerdekat->kadaluwarsa->format('d/m/Y') }}
                                                 </span>
                                                 <div class="mt-1" style="font-size: 12px;">
-                                                    @if ($diff < 0)
-                                                        <span class="text-{{ $color }}">Expired {{ abs($diff) }} hari lalu</span>
-                                                    @elseif ($diff == 0)
-                                                        <span class="text-{{ $color }}">Kadaluwarsa hari ini</span>
-                                                    @else
-                                                        <span class="text-{{ $color }}">{{ $diff }} hari lagi</span>
-                                                    @endif
+                                                    <span class="text-{{ $statusED['badge'] }}">
+                                                        <i class="fas fa-clock"></i> {{ $statusED['text'] }}
+                                                    </span>
                                                 </div>
                                             @else
                                                 <span class="badge badge-secondary">Tidak ada batch</span>
@@ -269,7 +275,7 @@
             justify-content: center;
         }
         
-        /* ✅ STYLES BARU UNTUK OPSI 1 */
+        /* ✅ STYLES UNTUK FEFO */
         .barcode-container {
             display: flex;
             flex-direction: column;
@@ -330,6 +336,16 @@
             border-radius: 8px;
             transition: background-color 0.2s;
         }
+        
+        /* ✅ HIGHLIGHT UNTUK EXPIRED/ALMOST EXPIRED */
+        .badge-danger {
+            animation: pulse-danger 2s infinite;
+        }
+        
+        @keyframes pulse-danger {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.7; }
+        }
     </style>
 @endpush
 
@@ -340,7 +356,7 @@
                 "language": {
                     "url": "//cdn.datatables.net/plug-ins/1.10.24/i18n/Indonesian.json"
                 },
-                "order": [[0, "asc"]],
+                "order": [[10, "asc"]], // ✅ Sort by kadaluwarsa terdekat (FEFO)
                 "pageLength": 25,
                 "columnDefs": [
                     { "orderable": false, "targets": [1, 2, 11] } // Barcode, Photo, Aksi
