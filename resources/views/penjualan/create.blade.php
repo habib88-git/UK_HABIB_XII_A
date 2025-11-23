@@ -1149,8 +1149,8 @@
                 <td>${produk.satuan}</td>
                 <td>${hargaDisplay}</td>
                 <td><input type="number" name="jumlah_produk[]" value="1" min="1" max="${maxQty}"
-                       class="form-control form-control-sm jumlah" 
-                       data-harga="${hargaInfo.harga}" 
+                       class="form-control form-control-sm jumlah"
+                       data-harga="${hargaInfo.harga}"
                        data-is-bogo="${hargaInfo.is_bogo}"
                        data-stok-asli="${produk.stok}"></td>
                 <td class="subtotal fw-semibold">${formatRupiah(hargaInfo.harga)}</td>
@@ -1588,5 +1588,50 @@
             console.log('📊 Products loaded:', Object.keys(produkData).length);
             console.log('🎁 Products with expiry discount:', produkListData.filter(p => p.diskon_expiry).length);
         });
+
+        // 🔥 AUTO PRINT SETELAH TRANSAKSI BERHASIL
+        @if(session('auto_print') && session('penjualan_id'))
+            document.addEventListener('DOMContentLoaded', function() {
+                let penjualanId = {{ session('penjualan_id') }};
+                let metodePembayaran = '{{ session('metode_pembayaran', 'cash') }}';
+
+                // Tunggu modal muncul dulu kalau ada
+                const checkAndPrint = setInterval(function() {
+                    // Cek apakah modal sudah muncul
+                    const successModal = document.getElementById('successModal');
+                    const qrisModal = document.getElementById('qrisModal');
+
+                    if (metodePembayaran === 'qris' && qrisModal) {
+                        clearInterval(checkAndPrint);
+
+                        // Override tombol konfirmasi QRIS
+                        const confirmQRISBtn = document.getElementById('confirmQRIS');
+                        if (confirmQRISBtn) {
+                            confirmQRISBtn.addEventListener('click', function() {
+                                // Buka struk di tab baru
+                                window.open('/penjualan/struk/' + penjualanId, '_blank', 'width=400,height=600');
+                            });
+                        }
+                    } else if (successModal && bootstrap.Modal.getInstance(successModal)) {
+                        clearInterval(checkAndPrint);
+
+                        // Override tombol "Cetak Struk"
+                        const cetakBtn = document.getElementById('cetakStrukBtn');
+                        if (cetakBtn) {
+                            cetakBtn.addEventListener('click', function() {
+                                window.open('/penjualan/struk/' + penjualanId, '_blank', 'width=400,height=600');
+                                bootstrap.Modal.getInstance(successModal).hide();
+                                setTimeout(() => resetForm(), 300);
+                            });
+                        }
+                    }
+                }, 100);
+
+                // Fallback: Jika setelah 5 detik masih belum ada modal, langsung print
+                setTimeout(function() {
+                    clearInterval(checkAndPrint);
+                }, 5000);
+            });
+        @endif
     </script>
 @endsection

@@ -48,7 +48,7 @@
             padding: 8px 0;
             font-size: 10px;
         }
-        
+
         .product-table td {
             padding: 4px 0;
             font-size: 11px;
@@ -103,7 +103,7 @@
     </table>
 
     <!-- Hapus line ini karena sudah ada border-top di th -->
-    
+
     <table class="product-table">
         <thead>
             <tr>
@@ -171,6 +171,18 @@
         Diskon 5% setiap kelipatan Rp 100.000<br>
         Belanja lebih banyak, hemat lebih banyak!
     </p>
+
+    <script>
+        window.onload = function() {
+            // Auto print saat halaman dibuka
+            window.print();
+
+            // Tutup window atau redirect setelah print
+            window.onafterprint = function() {
+                window.close(); // Tutup tab
+            }
+        }
+    </script>
 </body>
 
 </html>

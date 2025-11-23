@@ -30,12 +30,12 @@ class PenjualanController extends Controller
     public function create()
     {
         $pelanggans = Pelanggans::all();
-        
+
         // Ambil produk yang punya stok dengan info batch terdekat
         $produks = Produks::whereHas('batches', function($q) {
             $q->where('stok', '>', 0);
         })->with(['satuan', 'kategori', 'batchesAktif'])->get();
-        
+
         // Tambahkan info diskon expiry untuk setiap produk
         $produks->map(function($produk) {
             $batchTerdekat = $produk->getBatchTerdekat();
@@ -48,7 +48,7 @@ class PenjualanController extends Controller
             }
             return $produk;
         });
-        
+
         $kategoris = Kategoris::all();
 
         return view('penjualan.create', compact('pelanggans', 'produks', 'kategoris'));
@@ -56,7 +56,7 @@ class PenjualanController extends Controller
 
     /**
      * Hitung diskon berdasarkan tanggal kadaluwarsa
-     * 
+     *
      * Aturan:
      * - H-7 atau kurang: Buy 1 Get 1 (diskon 50% karena dapat 2 item)
      *   * Jika stok ganjil, item terakhir: diskon 10% + gratis 1
@@ -188,13 +188,13 @@ class PenjualanController extends Controller
                 }
 
                 $diskonExpiry = $this->hitungDiskonExpiry($batchTerdekat->kadaluwarsa);
-                
+
                 // ✅ JIKA BOGO, STOK YANG DIBUTUHKAN = JUMLAH BELI x 2
                 $jumlahDibutuhkan = $diskonExpiry['is_bogo'] ? $jumlah * 2 : $jumlah;
-                
+
                 // Cek stok dengan jumlah yang dibutuhkan (untuk BOGO = jumlah x 2)
                 $stokTersedia = BatchProduk::where('produk_id', $produk_id)->sum('stok');
-                
+
                 if ($stokTersedia < $jumlahDibutuhkan) {
                     $pesanError = "Stok {$produk->nama_produk} tidak mencukupi! Tersedia: {$stokTersedia}";
                     if ($diskonExpiry['is_bogo']) {
@@ -203,15 +203,15 @@ class PenjualanController extends Controller
                     DB::rollBack();
                     return back()->with('error', $pesanError);
                 }
-                
+
                 // Hitung harga setelah diskon expiry
                 $hargaAsli = $produk->harga_jual;
                 $diskonPersenExpiry = ($hargaAsli * $diskonExpiry['persentase'] / 100);
                 $hargaSetelahDiskon = $hargaAsli - $diskonPersenExpiry - $diskonExpiry['potongan_nominal'];
-                
+
                 // Pastikan harga tidak negatif
                 $hargaSetelahDiskon = max($hargaSetelahDiskon, 0);
-                
+
                 $subtotal = $hargaSetelahDiskon * $jumlah; // Harga sudah diskon, qty masih original
                 $total += $subtotal;
 
@@ -239,19 +239,19 @@ class PenjualanController extends Controller
 
             if ($request->pelanggan_id) {
                 $totalJumlahProduk = array_sum($request->jumlah_produk);
-                
+
                 // Diskon member 5% jika beli >= 10 item
                 if ($totalJumlahProduk >= 10) {
                     $diskonMember += ($total * 0.05);
                     $alasanDiskonMember[] = "Pembelian {$totalJumlahProduk} item (≥10)";
                 }
-                
+
                 // Diskon member 5% jika belanja >= Rp 100.000
                 if ($total >= 100000) {
                     $diskonMember += ($total * 0.05);
                     $alasanDiskonMember[] = "Belanja ≥ Rp 100.000";
                 }
-                
+
                 // Cap maksimal diskon member tidak melebihi total
                 $diskonMember = min($diskonMember, $total);
             }
@@ -324,12 +324,12 @@ class PenjualanController extends Controller
                         'kadaluwarsa_batch' => $batchInfo['kadaluwarsa'],
                     ]);
 
-                    $pelanggan = $request->pelanggan_id 
-                        ? Pelanggans::find($request->pelanggan_id) 
+                    $pelanggan = $request->pelanggan_id
+                        ? Pelanggans::find($request->pelanggan_id)
                         : null;
-                    
-                    $keterangan = $pelanggan 
-                        ? "Penjualan kepada {$pelanggan->nama_pelanggan} - Batch: {$batchInfo['barcode_batch']} (FEFO){$infoDiskon}" 
+
+                    $keterangan = $pelanggan
+                        ? "Penjualan kepada {$pelanggan->nama_pelanggan} - Batch: {$batchInfo['barcode_batch']} (FEFO){$infoDiskon}"
                         : "Penjualan (Umum) - Batch: {$batchInfo['barcode_batch']} (FEFO){$infoDiskon}";
 
                     StockHistory::create([
@@ -367,7 +367,7 @@ class PenjualanController extends Controller
             if ($diskonMember > 0) {
                 $pesanDiskon[] = "Diskon member: Rp " . number_format($diskonMember) . " (" . implode(" + ", $alasanDiskonMember) . ")";
             }
-            
+
             $pesanSukses = 'Transaksi berhasil disimpan dengan sistem FEFO!';
             if (!empty($pesanDiskon)) {
                 $pesanSukses .= ' ' . implode(', ', $pesanDiskon);
@@ -377,7 +377,8 @@ class PenjualanController extends Controller
                 'success' => $pesanSukses,
                 'penjualan_id' => $penjualan->penjualan_id,
                 'metode_pembayaran' => $request->metode,
-                'total_bayar' => $totalSetelahDiskon
+                'total_bayar' => $totalSetelahDiskon,
+                'auto_print' => true  // 🔥 TAMBAHIN INI UNTUK AUTO PRINT
             ]);
 
         } catch (\Exception $e) {
@@ -465,7 +466,7 @@ class PenjualanController extends Controller
                     $batch = BatchProduk::find($detail->batch_id);
                     if ($batch) {
                         $stokSebelum = BatchProduk::where('produk_id', $batch->produk_id)->sum('stok');
-                        
+
                         $batch->stok += $detail->jumlah_produk;
                         $batch->save();
 
