@@ -2,9 +2,6 @@
 
     <!-- Brand -->
     <a class="sidebar-brand d-flex align-items-center justify-content-center" href="#">
-        <div class="sidebar-brand-icon">
-            <img src="{{ asset('img/logo/logo2.png') }}" alt="Logo">
-        </div>
         <div class="sidebar-brand-text mx-3">Martkita</div>
     </a>
 

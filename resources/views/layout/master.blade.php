@@ -7,8 +7,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
     <meta name="description" content="">
     <meta name="author" content="">
-    <link href="{{ asset('ruang-admin/img/logo/logo.png') }}" rel="icon">
-    <title>@yield('title', 'RuangAdmin - Dashboard')</title>
 
     <!-- Fonts & CSS -->
     <link href="{{ asset('ruang-admin/vendor/fontawesome-free/css/all.min.css') }}" rel="stylesheet" type="text/css">
