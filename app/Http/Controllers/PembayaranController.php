@@ -53,7 +53,7 @@ class PembayaranController extends Controller
 
     public function struk($pembayaran_id)
     {
-        $pembayaran = Pembayaran::with('penjualan.detailPenjualan.produk')->findOrFail($pembayaran_id);
+        $pembayaran = Pembayarans::with('penjualan.detailPenjualan.produk')->findOrFail($pembayaran_id);
         return view('pembayaran.struk', compact('pembayaran'));
     }
 

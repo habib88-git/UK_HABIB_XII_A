@@ -115,6 +115,9 @@ Route::resource('penjualan', PenjualanController::class)->middleware('kasir');
 Route::resource('supplier', SupplierController::class)->middleware('admin');
 Route::resource('pembelian', PembelianController::class)->middleware('admin');
 
+// Route untuk print PDF pembelian
+Route::get('/pembelian/{id}/pdf', [PembelianController::class, 'printPdf'])->name('pembelian.pdf')->middleware('admin');
+
 Route::get('/profit', [ProfitController::class, 'index'])->name('profit.index')->middleware('admin');
 
 Route::prefix('laporan')->middleware('admin')->group(function () {

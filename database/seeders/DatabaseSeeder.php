@@ -18,8 +18,6 @@ class DatabaseSeeder extends Seeder
         SatuanSeeder::class,
         SupplierSeeder::class,
         ProdukSeeder::class,
-        PembelianSeeder::class,
-        DetailPembelianSeeder::class,
         ]);
     }
 }

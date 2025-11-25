@@ -8,7 +8,8 @@ use App\Models\DetailPembelians;
 use App\Models\Produks;
 use App\Models\Suppliers;
 use App\Models\StockHistory;
-use App\Models\BatchProduk; // ✅ TAMBAH INI
+use App\Models\BatchProduk;
+use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Auth;
 
@@ -23,13 +24,12 @@ class PembelianController extends Controller
     public function create()
     {
         $suppliers = Suppliers::all();
-        
-        // Ambil produk unik (tidak duplikat)
-        $produks = Produks::select('nama_produk', 'kategori_id', 'satuan_id', 'supplier_id', 'harga_beli', 'harga_jual', 'photo')
+
+        // ✅ Ambil produk unik (1 produk master per nama)
+        $produks = Produks::select('nama_produk', 'kategori_id', 'satuan_id', 'supplier_id', 'harga_beli', 'harga_jual', 'photo', 'barcode')
             ->selectRaw('MAX(produk_id) as produk_id')
-            ->selectRaw('MAX(barcode) as barcode')
             ->with(['kategori', 'satuan', 'supplier'])
-            ->groupBy('nama_produk', 'kategori_id', 'satuan_id', 'supplier_id', 'harga_beli', 'harga_jual', 'photo')
+            ->groupBy('nama_produk', 'kategori_id', 'satuan_id', 'supplier_id', 'harga_beli', 'harga_jual', 'photo', 'barcode')
             ->orderBy('nama_produk', 'asc')
             ->get();
 
@@ -37,126 +37,69 @@ class PembelianController extends Controller
     }
 
     public function store(Request $request)
-    {
-        $request->validate([
-            'tanggal' => 'required|date',
-            'produk_id.*' => 'required|exists:tbl_produks,produk_id',
-            'jumlah.*' => 'required|integer|min:1',
-            'harga_beli.*' => 'required|numeric|min:0',
-            'supplier_id.*' => 'nullable|exists:tbl_suppliers,supplier_id',
-            'barcode.*' => 'required|string|max:100',
-            'kadaluwarsa.*' => 'required|date',
-        ]);
+{
+    // PARSE HARGA BELI SEBELUM VALIDASI (Fix format Rupiah)
+    $hargaBeliParsed = [];
+    foreach ($request->harga_beli as $harga) {
+        $hargaBeliParsed[] = (float) str_replace(['.', ','], ['', '.'], $harga);
+    }
+    $request->merge(['harga_beli' => $hargaBeliParsed]);
 
-        DB::beginTransaction();
-
-        try {
-            // Ambil supplier_id
-            $supplierId = null;
-            foreach ($request->supplier_id as $sid) {
-                if ($sid) {
-                    $supplierId = $sid;
+    // NORMALISASI supplier_id (supaya tidak array)
+    $supplierId = null;
+    if ($request->has('supplier_id')) {
+        $s = $request->input('supplier_id');
+        if (is_array($s)) {
+            foreach ($s as $val) {
+                if ($val !== null && $val !== '') {
+                    $supplierId = $val;
                     break;
                 }
             }
-
-            // Hitung total
-            $total = 0;
-            foreach ($request->jumlah as $i => $qty) {
-                $hargaBeli = (float) str_replace(['.', ','], ['', '.'], $request->harga_beli[$i]);
-                $total += $qty * $hargaBeli;
-            }
-
-            // Buat pembelian
-            $pembelian = Pembelians::create([
-                'tanggal' => $request->tanggal,
-                'supplier_id' => $supplierId,
-                'user_id' => Auth::id() ?? 1,
-                'total_harga' => $total,
-            ]);
-
-            // Process setiap item
-            foreach ($request->produk_id as $i => $produkId) {
-                $jumlah = $request->jumlah[$i];
-                $hargaBeli = (float) str_replace(['.', ','], ['', '.'], $request->harga_beli[$i]);
-                $subtotal = $jumlah * $hargaBeli;
-                $barcode = $request->barcode[$i];
-                $kadaluwarsa = $request->kadaluwarsa[$i];
-
-                $produkTemplate = Produks::findOrFail($produkId);
-
-                // ✅ CARI ATAU BUAT PRODUK MASTER (HANYA 1 RECORD PER NAMA PRODUK)
-                $produkMaster = Produks::where('nama_produk', $produkTemplate->nama_produk)
-                    ->first();
-
-                if (!$produkMaster) {
-                    // Buat produk master baru (tanpa barcode spesifik)
-                    $produkMaster = Produks::create([
-                        'barcode' => 'MASTER-' . strtoupper(substr($produkTemplate->nama_produk, 0, 5)) . '-' . time(),
-                        'nama_produk' => $produkTemplate->nama_produk,
-                        'photo' => $produkTemplate->photo,
-                        'harga_jual' => $produkTemplate->harga_jual,
-                        'harga_beli' => $hargaBeli,
-                        'stok' => 0, // Stok akan dihitung dari batch
-                        'kadaluwarsa' => $kadaluwarsa,
-                        'kategori_id' => $produkTemplate->kategori_id,
-                        'satuan_id' => $produkTemplate->satuan_id,
-                        'supplier_id' => $produkTemplate->supplier_id ?? null,
-                    ]);
-                }
-
-                // ✅ HITUNG STOK TOTAL SEBELUM (DARI SEMUA BATCH)
-                $stokSebelum = BatchProduk::where('produk_id', $produkMaster->produk_id)->sum('stok');
-
-                // ✅ BUAT BATCH BARU
-                $batch = BatchProduk::create([
-                    'produk_id' => $produkMaster->produk_id,
-                    'barcode_batch' => $barcode,
-                    'stok' => $jumlah,
-                    'kadaluwarsa' => $kadaluwarsa,
-                    'harga_beli' => $hargaBeli,
-                    'pembelian_id' => $pembelian->pembelian_id,
-                ]);
-
-                // ✅ UPDATE STOK TOTAL DI PRODUK MASTER
-                $stokSesudah = BatchProduk::where('produk_id', $produkMaster->produk_id)->sum('stok');
-                $produkMaster->stok = $stokSesudah;
-                $produkMaster->save();
-
-                // ✅ SIMPAN DETAIL PEMBELIAN (DENGAN REFERENSI KE BATCH)
-                DetailPembelians::create([
-                    'pembelian_id' => $pembelian->pembelian_id,
-                    'produk_id' => $produkMaster->produk_id,
-                    'batch_id' => $batch->batch_id, // ✅ REFERENSI KE BATCH
-                    'jumlah' => $jumlah,
-                    'harga_beli' => $hargaBeli,
-                    'subtotal' => $subtotal,
-                    'kadaluwarsa' => $kadaluwarsa,
-                    'barcode_batch' => $barcode,
-                ]);
-
-                // ✅ CATAT STOCK HISTORY
-                StockHistory::create([
-                    'produk_id' => $produkMaster->produk_id,
-                    'tipe' => 'masuk',
-                    'jumlah' => $jumlah,
-                    'stok_sebelum' => $stokSebelum,
-                    'stok_sesudah' => $stokSesudah,
-                    'keterangan' => "Pembelian batch {$barcode} - ED: {$kadaluwarsa}",
-                    'referensi_tipe' => 'pembelian',
-                    'referensi_id' => $pembelian->pembelian_id,
-                    'user_id' => Auth::id() ?? 1,
-                ]);
-            }
-
-            DB::commit();
-            return redirect()->route('pembelian.index')->with('success', 'Pembelian berhasil! Batch produk dicatat dengan barcode: ' . implode(', ', $request->barcode));
-
-        } catch (\Exception $e) {
-            DB::rollback();
-            return redirect()->back()->withInput()->withErrors(['error' => $e->getMessage()]);
+        } else {
+            $supplierId = $s;
         }
     }
+    $request->merge(['supplier_id' => $supplierId]);
+
+    // VALIDASI
+    $request->validate([
+        'tanggal' => 'required|date',
+        'supplier_id' => 'nullable|exists:tbl_suppliers,supplier_id',
+        'produk_id.*' => 'required|exists:tbl_produks,produk_id',
+        'jumlah.*' => 'required|integer|min:1',
+        'harga_beli.*' => 'required|numeric|min:0',
+        'kadaluwarsa.*' => 'required|date',
+    ]);
+
+    DB::beginTransaction();
+
+    try {
+        // Hitung total pembelian
+        $total = 0;
+        foreach ($request->jumlah as $i => $qty) {
+            $total += $qty * $request->harga_beli[$i];
+        }
+
+        // Create pembelian master
+        $pembelian = Pembelians::create([
+            'tanggal' => $request->tanggal,
+            'supplier_id' => $supplierId ? (int) $supplierId : null,
+            'user_id' => Auth::id() ?? 1,
+            'total_harga' => $total,
+        ]);
+
+        // PROSES ITEM
+        $this->processItemsPembelian($request, $pembelian);
+
+        DB::commit();
+        return redirect()->route('pembelian.index')->with('success', 'Pembelian berhasil disimpan!');
+
+    } catch (\Exception $e) {
+        DB::rollback();
+        return redirect()->back()->withInput()->withErrors(['error' => $e->getMessage()]);
+    }
+}
 
     public function show(string $id)
     {
@@ -168,12 +111,11 @@ class PembelianController extends Controller
     {
         $pembelian = Pembelians::with(['details.produk', 'details.batch'])->findOrFail($id);
         $suppliers = Suppliers::all();
-        
-        $produks = Produks::select('nama_produk', 'kategori_id', 'satuan_id', 'supplier_id', 'harga_beli', 'harga_jual', 'photo')
+
+        $produks = Produks::select('nama_produk', 'kategori_id', 'satuan_id', 'supplier_id', 'harga_beli', 'harga_jual', 'photo', 'barcode')
             ->selectRaw('MAX(produk_id) as produk_id')
-            ->selectRaw('MAX(barcode) as barcode')
             ->with(['kategori', 'satuan', 'supplier'])
-            ->groupBy('nama_produk', 'kategori_id', 'satuan_id', 'supplier_id', 'harga_beli', 'harga_jual', 'photo')
+            ->groupBy('nama_produk', 'kategori_id', 'satuan_id', 'supplier_id', 'harga_beli', 'harga_jual', 'photo', 'barcode')
             ->orderBy('nama_produk', 'asc')
             ->get();
 
@@ -181,145 +123,74 @@ class PembelianController extends Controller
     }
 
     public function update(Request $request, string $id)
-    {
-        $pembelian = Pembelians::findOrFail($id);
+{
+    $pembelian = Pembelians::findOrFail($id);
 
-        $request->validate([
-            'tanggal' => 'required|date',
-            'supplier_id' => 'nullable|exists:tbl_suppliers,supplier_id',
-            'produk_id.*' => 'required|exists:tbl_produks,produk_id',
-            'jumlah.*' => 'required|integer|min:1',
-            'harga_beli.*' => 'required|numeric|min:0',
-            'barcode.*' => 'required|string|max:100',
-            'kadaluwarsa.*' => 'required|date',
-        ]);
+    // PARSE HARGA BELI SEBELUM VALIDASI
+    $hargaBeliParsed = [];
+    foreach ($request->harga_beli as $harga) {
+        $hargaBeliParsed[] = (float) str_replace(['.', ','], ['', '.'], $harga);
+    }
+    $request->merge(['harga_beli' => $hargaBeliParsed]);
 
-        DB::beginTransaction();
-
-        try {
-            // ✅ KEMBALIKAN STOK DARI BATCH LAMA & HAPUS BATCH
-            foreach ($pembelian->details as $detail) {
-                if ($detail->batch_id) {
-                    $batch = BatchProduk::find($detail->batch_id);
-                    if ($batch) {
-                        $produk = $batch->produk;
-                        $stokSebelum = BatchProduk::where('produk_id', $produk->produk_id)->sum('stok');
-
-                        // Hapus batch
-                        $batch->delete();
-
-                        // Update stok produk master
-                        $stokSesudah = BatchProduk::where('produk_id', $produk->produk_id)->sum('stok');
-                        $produk->stok = $stokSesudah;
-                        $produk->save();
-
-                        // Catat history
-                        StockHistory::create([
-                            'produk_id' => $produk->produk_id,
-                            'tipe' => 'keluar',
-                            'jumlah' => $detail->jumlah,
-                            'stok_sebelum' => $stokSebelum,
-                            'stok_sesudah' => $stokSesudah,
-                            'keterangan' => "Koreksi: Edit pembelian #{$pembelian->pembelian_id}",
-                            'referensi_tipe' => 'pembelian',
-                            'referensi_id' => $pembelian->pembelian_id,
-                            'user_id' => Auth::id() ?? 1,
-                        ]);
-                    }
+    // NORMALISASI supplier_id
+    $supplierId = null;
+    if ($request->has('supplier_id')) {
+        $s = $request->input('supplier_id');
+        if (is_array($s)) {
+            foreach ($s as $val) {
+                if ($val !== null && $val !== '') {
+                    $supplierId = $val;
+                    break;
                 }
             }
-
-            // Hapus detail lama
-            $pembelian->details()->delete();
-
-            // Hitung total baru
-            $total = 0;
-            foreach ($request->produk_id as $key => $produkId) {
-                $hargaBeli = (float) str_replace(['.', ','], ['', '.'], $request->harga_beli[$key]);
-                $total += $request->jumlah[$key] * $hargaBeli;
-            }
-
-            // Update pembelian
-            $pembelian->update([
-                'tanggal' => $request->tanggal,
-                'supplier_id' => $request->supplier_id,
-                'total_harga' => $total,
-            ]);
-
-            // ✅ BUAT BATCH BARU
-            foreach ($request->produk_id as $key => $produkId) {
-                $jumlah = $request->jumlah[$key];
-                $hargaBeli = (float) str_replace(['.', ','], ['', '.'], $request->harga_beli[$key]);
-                $subtotal = $jumlah * $hargaBeli;
-                $barcode = $request->barcode[$key];
-                $kadaluwarsa = $request->kadaluwarsa[$key];
-
-                $produkTemplate = Produks::findOrFail($produkId);
-
-                $produkMaster = Produks::where('nama_produk', $produkTemplate->nama_produk)->first();
-
-                if (!$produkMaster) {
-                    $produkMaster = Produks::create([
-                        'barcode' => 'MASTER-' . strtoupper(substr($produkTemplate->nama_produk, 0, 5)) . '-' . time(),
-                        'nama_produk' => $produkTemplate->nama_produk,
-                        'photo' => $produkTemplate->photo,
-                        'harga_jual' => $produkTemplate->harga_jual,
-                        'harga_beli' => $hargaBeli,
-                        'stok' => 0,
-                        'kadaluwarsa' => $kadaluwarsa,
-                        'kategori_id' => $produkTemplate->kategori_id,
-                        'satuan_id' => $produkTemplate->satuan_id,
-                        'supplier_id' => $produkTemplate->supplier_id ?? null,
-                    ]);
-                }
-
-                $stokSebelum = BatchProduk::where('produk_id', $produkMaster->produk_id)->sum('stok');
-
-                $batch = BatchProduk::create([
-                    'produk_id' => $produkMaster->produk_id,
-                    'barcode_batch' => $barcode,
-                    'stok' => $jumlah,
-                    'kadaluwarsa' => $kadaluwarsa,
-                    'harga_beli' => $hargaBeli,
-                    'pembelian_id' => $pembelian->pembelian_id,
-                ]);
-
-                $stokSesudah = BatchProduk::where('produk_id', $produkMaster->produk_id)->sum('stok');
-                $produkMaster->stok = $stokSesudah;
-                $produkMaster->save();
-
-                DetailPembelians::create([
-                    'pembelian_id' => $pembelian->pembelian_id,
-                    'produk_id' => $produkMaster->produk_id,
-                    'batch_id' => $batch->batch_id,
-                    'jumlah' => $jumlah,
-                    'harga_beli' => $hargaBeli,
-                    'subtotal' => $subtotal,
-                    'kadaluwarsa' => $kadaluwarsa,
-                    'barcode_batch' => $barcode,
-                ]);
-
-                StockHistory::create([
-                    'produk_id' => $produkMaster->produk_id,
-                    'tipe' => 'masuk',
-                    'jumlah' => $jumlah,
-                    'stok_sebelum' => $stokSebelum,
-                    'stok_sesudah' => $stokSesudah,
-                    'keterangan' => "Edit pembelian batch {$barcode}",
-                    'referensi_tipe' => 'pembelian',
-                    'referensi_id' => $pembelian->pembelian_id,
-                    'user_id' => Auth::id() ?? 1,
-                ]);
-            }
-
-            DB::commit();
-            return redirect()->route('pembelian.index')->with('success', 'Pembelian berhasil diperbarui');
-
-        } catch (\Exception $e) {
-            DB::rollback();
-            return redirect()->back()->withInput()->with('error', 'Terjadi kesalahan: ' . $e->getMessage());
+        } else {
+            $supplierId = $s;
         }
     }
+    $request->merge(['supplier_id' => $supplierId]);
+
+    // VALIDASI
+    $request->validate([
+        'tanggal' => 'required|date',
+        'supplier_id' => 'nullable|exists:tbl_suppliers,supplier_id',
+        'produk_id.*' => 'required|exists:tbl_produks,produk_id',
+        'jumlah.*' => 'required|integer|min:1',
+        'harga_beli.*' => 'required|numeric|min:0',
+        'kadaluwarsa.*' => 'required|date',
+    ]);
+
+    DB::beginTransaction();
+
+    try {
+        // HAPUS BATCH LAMA
+        $this->deletePembelianBatches($pembelian);
+
+        // Hitung total baru
+        $total = 0;
+        foreach ($request->produk_id as $key => $produkId) {
+            $total += $request->jumlah[$key] * $request->harga_beli[$key];
+        }
+
+        // Update pembelian master
+        $pembelian->update([
+            'tanggal' => $request->tanggal,
+            'supplier_id' => $supplierId ? (int) $supplierId : null,
+            'total_harga' => $total,
+        ]);
+
+        // BUAT BATCH BARU
+        $this->processItemsPembelian($request, $pembelian);
+
+        DB::commit();
+        return redirect()->route('pembelian.index')->with('success', 'Pembelian berhasil diperbarui');
+
+    } catch (\Exception $e) {
+        DB::rollback();
+        return redirect()->back()->withInput()->with('error', 'Terjadi kesalahan: ' . $e->getMessage());
+    }
+}
+
 
     public function destroy(string $id)
     {
@@ -328,34 +199,10 @@ class PembelianController extends Controller
         DB::beginTransaction();
 
         try {
-            foreach ($pembelian->details as $detail) {
-                if ($detail->batch_id) {
-                    $batch = BatchProduk::find($detail->batch_id);
-                    if ($batch) {
-                        $produk = $batch->produk;
-                        $stokSebelum = BatchProduk::where('produk_id', $produk->produk_id)->sum('stok');
+            // ✅ HAPUS SEMUA BATCH & KEMBALIKAN STOK
+            $this->deletePembelianBatches($pembelian);
 
-                        $batch->delete();
-
-                        $stokSesudah = BatchProduk::where('produk_id', $produk->produk_id)->sum('stok');
-                        $produk->stok = $stokSesudah;
-                        $produk->save();
-
-                        StockHistory::create([
-                            'produk_id' => $produk->produk_id,
-                            'tipe' => 'keluar',
-                            'jumlah' => $detail->jumlah,
-                            'stok_sebelum' => $stokSebelum,
-                            'stok_sesudah' => $stokSesudah,
-                            'keterangan' => "Hapus pembelian #{$pembelian->pembelian_id}",
-                            'referensi_tipe' => 'pembelian',
-                            'referensi_id' => $pembelian->pembelian_id,
-                            'user_id' => Auth::id() ?? 1,
-                        ]);
-                    }
-                }
-            }
-
+            // Hapus record pembelian master
             $pembelian->delete();
 
             DB::commit();
@@ -365,5 +212,157 @@ class PembelianController extends Controller
             DB::rollback();
             return redirect()->back()->with('error', 'Terjadi kesalahan: ' . $e->getMessage());
         }
+    }
+
+    public function printPdf($id)
+    {
+        $pembelian = Pembelians::with([
+            'supplier',
+            'user',
+            'details.produk.kategori',
+            'details.produk.satuan',
+            'details.produk.supplier',
+            'details.batch'
+        ])->findOrFail($id);
+
+        $pdf = Pdf::loadView('laporan.laporan_pembelian', compact('pembelian'));
+        $pdf->setPaper('a4', 'landscape');
+
+        $filename = 'Laporan_Pembelian_' . str_pad($pembelian->pembelian_id, 6, '0', STR_PAD_LEFT) . '_' . date('Ymd_His') . '.pdf';
+
+        return $pdf->stream($filename);
+    }
+
+    // ========================================
+    // ✅ HELPER METHODS
+    // ========================================
+
+    /**
+     * Process pembelian items (untuk store & update)
+     */
+    private function processItemsPembelian(Request $request, Pembelians $pembelian)
+    {
+        // ✅ CACHE produk master yang sudah di-create (fix duplikasi)
+        $produkMasterCache = [];
+
+        foreach ($request->produk_id as $i => $produkId) {
+            $jumlah = $request->jumlah[$i];
+            $hargaBeli = $request->harga_beli[$i]; // ✅ Sudah float dari parse sebelumnya
+            $subtotal = $jumlah * $hargaBeli;
+            $kadaluwarsa = $request->kadaluwarsa[$i];
+
+            // Ambil produk template
+            $produkTemplate = Produks::findOrFail($produkId);
+            $barcode = $produkTemplate->barcode;
+
+            // ✅ CEK CACHE DULU (fix duplikasi produk master)
+            $namaProduk = $produkTemplate->nama_produk;
+
+            if (isset($produkMasterCache[$namaProduk])) {
+                $produkMaster = $produkMasterCache[$namaProduk];
+            } else {
+                // ✅ CARI ATAU BUAT PRODUK MASTER
+                $produkMaster = Produks::firstOrCreate(
+                    ['nama_produk' => $namaProduk],
+                    [
+                        'barcode' => $produkTemplate->barcode,
+                        'photo' => $produkTemplate->photo,
+                        'harga_jual' => $produkTemplate->harga_jual,
+                        'harga_beli' => $hargaBeli,
+                        'stok' => 0,
+                        'kadaluwarsa' => $kadaluwarsa,
+                        'kategori_id' => $produkTemplate->kategori_id,
+                        'satuan_id' => $produkTemplate->satuan_id,
+                        'supplier_id' => $produkTemplate->supplier_id ?? null,
+                    ]
+                );
+
+                // Simpan ke cache
+                $produkMasterCache[$namaProduk] = $produkMaster;
+            }
+
+            // Hitung stok sebelum
+            $stokSebelum = BatchProduk::where('produk_id', $produkMaster->produk_id)->sum('stok');
+
+            // ✅ BUAT BATCH BARU (barcode tetap sama dengan barcode produk)
+            $batch = BatchProduk::create([
+                'produk_id' => $produkMaster->produk_id,
+                'barcode_batch' => $barcode, // ✅ Barcode sama dengan produk
+                'stok' => $jumlah,
+                'kadaluwarsa' => $kadaluwarsa,
+                'harga_beli' => $hargaBeli,
+                'pembelian_id' => $pembelian->pembelian_id,
+            ]);
+
+            // Update stok master
+            $stokSesudah = BatchProduk::where('produk_id', $produkMaster->produk_id)->sum('stok');
+            $produkMaster->stok = $stokSesudah;
+            $produkMaster->save();
+
+            // Simpan detail pembelian
+            DetailPembelians::create([
+                'pembelian_id' => $pembelian->pembelian_id,
+                'produk_id' => $produkMaster->produk_id,
+                'batch_id' => $batch->batch_id,
+                'jumlah' => $jumlah,
+                'harga_beli' => $hargaBeli,
+                'subtotal' => $subtotal,
+                'kadaluwarsa' => $kadaluwarsa,
+                'barcode_batch' => $barcode,
+            ]);
+
+            // Catat riwayat stok
+            StockHistory::create([
+                'produk_id' => $produkMaster->produk_id,
+                'tipe' => 'masuk',
+                'jumlah' => $jumlah,
+                'stok_sebelum' => $stokSebelum,
+                'stok_sesudah' => $stokSesudah,
+                'keterangan' => "Pembelian batch {$barcode} - ED: {$kadaluwarsa}",
+                'referensi_tipe' => 'pembelian',
+                'referensi_id' => $pembelian->pembelian_id,
+                'user_id' => Auth::id() ?? 1,
+            ]);
+        }
+    }
+
+    /**
+     * Delete all batches dari pembelian & kembalikan stok
+     */
+    private function deletePembelianBatches(Pembelians $pembelian)
+    {
+        foreach ($pembelian->details as $detail) {
+            if ($detail->batch_id) {
+                $batch = BatchProduk::find($detail->batch_id);
+                if ($batch) {
+                    $produk = $batch->produk;
+                    $stokSebelum = BatchProduk::where('produk_id', $produk->produk_id)->sum('stok');
+
+                    // Hapus batch
+                    $batch->delete();
+
+                    // Update stok produk master
+                    $stokSesudah = BatchProduk::where('produk_id', $produk->produk_id)->sum('stok');
+                    $produk->stok = $stokSesudah;
+                    $produk->save();
+
+                    // Catat riwayat
+                    StockHistory::create([
+                        'produk_id' => $produk->produk_id,
+                        'tipe' => 'keluar',
+                        'jumlah' => $detail->jumlah,
+                        'stok_sebelum' => $stokSebelum,
+                        'stok_sesudah' => $stokSesudah,
+                        'keterangan' => "Koreksi: Hapus/Edit pembelian #{$pembelian->pembelian_id}",
+                        'referensi_tipe' => 'pembelian',
+                        'referensi_id' => $pembelian->pembelian_id,
+                        'user_id' => Auth::id() ?? 1,
+                    ]);
+                }
+            }
+        }
+
+        // Hapus semua detail pembelian
+        $pembelian->details()->delete();
     }
 }

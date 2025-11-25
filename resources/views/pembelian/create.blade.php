@@ -34,27 +34,6 @@
             </div>
         @endif
 
-        {{-- Modal Barcode Scanner --}}
-        <div class="modal fade" id="barcodeScannerModal" tabindex="-1">
-            <div class="modal-dialog modal-lg">
-                <div class="modal-content">
-                    <div class="modal-header bg-primary text-white">
-                        <h5 class="modal-title">
-                            <i class="fas fa-camera me-2"></i> Scan Barcode dengan Kamera
-                        </h5>
-                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
-                    </div>
-                    <div class="modal-body">
-                        <div id="reader" style="width: 100%;"></div>
-                        <div class="alert alert-info mt-3">
-                            <i class="fas fa-info-circle me-2"></i>
-                            Arahkan kamera ke barcode produk
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
         {{-- Card Form --}}
         <div class="card shadow-sm border-0">
             <div class="card-header bg-primary text-white py-3">
@@ -100,25 +79,27 @@
                             <table class="table table-bordered align-middle" id="produkTable">
                                 <thead class="table-primary text-center">
                                     <tr>
-                                        <th width="15%">Produk</th>
-                                        <th width="12%">Barcode</th>
+                                        <th width="18%">Produk</th>
+                                        <th width="10%">Barcode</th>
                                         <th width="10%">Supplier</th>
                                         <th width="8%">Kategori</th>
                                         <th width="8%">Satuan</th>
                                         <th width="8%">Jumlah</th>
                                         <th width="10%">Harga Beli</th>
-                                        <th width="10%">Kadaluwarsa</th>
+                                        <th width="12%">Kadaluwarsa</th>
                                         <th width="10%">Subtotal</th>
                                         <th width="5%">Aksi</th>
                                     </tr>
                                 </thead>
                                 <tbody>
                                     <tr class="table-row">
+                                        {{-- ✅ PILIH PRODUK --}}
                                         <td>
                                             <select name="produk_id[]" class="form-select produkSelect" required>
                                                 <option value="">-- Pilih Produk --</option>
                                                 @foreach ($produks as $p)
                                                     <option value="{{ $p->produk_id }}"
+                                                        data-barcode="{{ $p->barcode }}"
                                                         data-harga="{{ $p->harga_beli ?? 0 }}"
                                                         data-kategori="{{ $p->kategori->nama_kategori ?? '-' }}"
                                                         data-satuan="{{ $p->satuan->nama_satuan ?? '-' }}"
@@ -129,36 +110,58 @@
                                                 @endforeach
                                             </select>
                                         </td>
+
+                                        {{-- ✅ BARCODE (otomatis terisi) --}}
                                         <td>
-                                            <div class="input-group">
-                                                <input type="text" name="barcode[]" class="form-control barcodeInput"
-                                                    placeholder="Scan/Input barcode baru" required>
-                                                <button type="button" class="btn btn-outline-primary scanBarcodeBtn"
-                                                    title="Scan dengan Kamera">
-                                                    <i class="fas fa-camera"></i>
-                                                </button>
-                                            </div>
-                                            <small class="text-muted">⚡ Scan atau ketik barcode BARU</small>
+                                            <input type="text" class="form-control barcodeDisplay bg-light text-center"
+                                                readonly placeholder="-">
                                         </td>
+
+                                        {{-- ✅ SUPPLIER (otomatis terisi) --}}
                                         <td>
                                             <input type="text" class="form-control supplierNama bg-light text-center"
                                                 readonly placeholder="-">
                                             <input type="hidden" name="supplier_id[]" class="supplierId">
                                         </td>
-                                        <td><input type="text" class="form-control kategoriNama bg-light text-center"
-                                                readonly placeholder="-"></td>
-                                        <td><input type="text" class="form-control satuanNama bg-light text-center"
-                                                readonly placeholder="-"></td>
-                                        <td><input type="number" name="jumlah[]" class="form-control jumlah text-end"
-                                                value="1" min="1" required></td>
-                                        <td><input type="text" name="harga_beli[]"
-                                                class="form-control hargaBeli text-end bg-light" value="0" readonly></td>
+
+                                        {{-- ✅ KATEGORI (otomatis terisi) --}}
                                         <td>
-                                            <input type="date" name="kadaluwarsa[]" class="form-control kadaluwarsaInput"
-                                                placeholder="Pilih tanggal" required>
+                                            <input type="text" class="form-control kategoriNama bg-light text-center"
+                                                readonly placeholder="-">
                                         </td>
-                                        <td><input type="text" class="form-control subtotal text-end bg-light" readonly
-                                                placeholder="0"></td>
+
+                                        {{-- ✅ SATUAN (otomatis terisi) --}}
+                                        <td>
+                                            <input type="text" class="form-control satuanNama bg-light text-center"
+                                                readonly placeholder="-">
+                                        </td>
+
+                                        {{-- ✅ JUMLAH (input manual) --}}
+                                        <td>
+                                            <input type="number" name="jumlah[]" class="form-control jumlah text-end"
+                                                value="1" min="1" required>
+                                        </td>
+
+                                        {{-- ✅ HARGA BELI (otomatis terisi, bisa diedit) --}}
+                                        <td>
+                                            <input type="text" name="harga_beli[]"
+                                                class="form-control hargaBeli text-end" value="0" required>
+                                        </td>
+
+                                        {{-- ✅ KADALUWARSA (input manual - WAJIB ISI) --}}
+                                        <td>
+                                            <input type="date" name="kadaluwarsa[]"
+                                                class="form-control kadaluwarsaInput" placeholder="Pilih tanggal"
+                                                required>
+                                        </td>
+
+                                        {{-- ✅ SUBTOTAL (otomatis dihitung) --}}
+                                        <td>
+                                            <input type="text" class="form-control subtotal text-end bg-light" readonly
+                                                placeholder="0">
+                                        </td>
+
+                                        {{-- ✅ TOMBOL HAPUS BARIS --}}
                                         <td class="text-center">
                                             <button type="button" class="btn btn-outline-danger btn-sm removeRow">
                                                 <i class="fas fa-trash"></i>
@@ -196,222 +199,167 @@
         </div>
     </div>
 
-    {{-- Load html5-qrcode Library --}}
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/html5-qrcode/2.3.8/html5-qrcode.min.js"></script>
-
     {{-- Script --}}
     <script>
-        document.addEventListener("DOMContentLoaded", function() {
-            let currentScanRow = null;
-            let html5QrcodeScanner = null;
+    document.addEventListener("DOMContentLoaded", function() {
 
-            // === Format angka ===
-            function formatNumber(num) {
-                return new Intl.NumberFormat('id-ID').format(num);
-            }
+        // ===== FORMAT ANGGKA =====
+        function formatNumber(num) {
+            return new Intl.NumberFormat('id-ID').format(num);
+        }
 
-            function parseFormattedNumber(str) {
-                if (!str) return 0;
-                return parseFloat(str.toString().replace(/\./g, '').replace(/,/g, ''));
-            }
+        function parseFormattedNumber(str) {
+            if (!str) return 0;
+            return parseFloat(str.toString().replace(/\./g, '').replace(/,/g, ''));
+        }
 
-            // === Set tanggal & waktu otomatis ===
-            function setCurrentDateTime() {
-                const now = new Date();
-                const local = new Date(now.getTime() - now.getTimezoneOffset() * 60000);
-                const datetimeLocal = local.toISOString().slice(0, 16);
-                document.getElementById('tanggalInput').value = datetimeLocal;
+        // ===== SET TANGGAL OTOMATIS =====
+        function setCurrentDateTime() {
+            const now = new Date();
+            const local = new Date(now.getTime() - now.getTimezoneOffset() * 60000);
+            const datetimeLocal = local.toISOString().slice(0, 16);
+            document.getElementById('tanggalInput').value = datetimeLocal;
 
-                const options = {
-                    weekday: 'long',
-                    year: 'numeric',
-                    month: 'long',
-                    day: 'numeric',
-                    hour: '2-digit',
-                    minute: '2-digit',
-                    second: '2-digit'
-                };
-                document.getElementById('currentDateTime').textContent = now.toLocaleDateString('id-ID', options);
-            }
+            const options = {
+                weekday: 'long',
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit',
+                second: '2-digit'
+            };
+            document.getElementById('currentDateTime').textContent = now.toLocaleDateString('id-ID', options);
+        }
 
-            setCurrentDateTime();
-            setInterval(setCurrentDateTime, 1000);
+        setCurrentDateTime();
+        setInterval(setCurrentDateTime, 1000);
 
-            // === Hitung subtotal & total ===
-            function hitungSubtotal(row) {
-                let jumlah = parseFloat(row.querySelector(".jumlah").value) || 0;
-                let harga = parseFormattedNumber(row.querySelector(".hargaBeli").value) || 0;
-                let subtotal = jumlah * harga;
-                row.querySelector(".subtotal").value = formatNumber(subtotal);
-                return subtotal;
-            }
+        // ===== HITUNG SUBTOTAL & TOTAL =====
+        function hitungSubtotal(row) {
+            let jumlah = parseFloat(row.querySelector(".jumlah").value) || 0;
+            let harga = parseFormattedNumber(row.querySelector(".hargaBeli").value) || 0;
+            let subtotal = jumlah * harga;
+            row.querySelector(".subtotal").value = formatNumber(subtotal);
+            return subtotal;
+        }
 
-            function hitungTotal() {
-                let total = 0;
-                document.querySelectorAll("#produkTable tbody tr").forEach(row => total += hitungSubtotal(row));
-                document.getElementById("totalHarga").textContent = formatNumber(total);
-            }
+        function hitungTotal() {
+            let total = 0;
+            document.querySelectorAll("#produkTable tbody tr").forEach(row => {
+                total += hitungSubtotal(row);
+            });
+            document.getElementById("totalHarga").textContent = formatNumber(total);
+        }
 
-            // === Event produk dipilih ===
-            document.addEventListener("change", function(e) {
-                if (e.target.classList.contains("produkSelect")) {
-                    let selected = e.target.selectedOptions[0];
-                    let row = e.target.closest("tr");
+        // ===== EVENT PRODUK DIPILIH =====
+        document.addEventListener("change", function(e) {
+            if (e.target.classList.contains("produkSelect")) {
+                let selected = e.target.selectedOptions[0];
+                let row = e.target.closest("tr");
 
-                    if (selected.value) {
-                        // ✅ Auto-fill data produk (kategori, satuan, harga, supplier)
-                        row.querySelector(".hargaBeli").value = formatNumber(selected.dataset.harga || 0);
-                        row.querySelector(".kategoriNama").value = selected.dataset.kategori || '-';
-                        row.querySelector(".satuanNama").value = selected.dataset.satuan || '-';
-                        row.querySelector(".supplierNama").value = selected.dataset.supplierNama || '-';
-                        row.querySelector(".supplierId").value = selected.dataset.supplierId || '';
+                if (selected.value) {
 
-                        // ✅ JANGAN auto-fill barcode & kadaluwarsa! User harus input sendiri
-                        row.querySelector(".barcodeInput").value = '';
-                        row.querySelector(".kadaluwarsaInput").value = '';
-                        
-                        // Focus ke input barcode untuk langsung scan/ketik
-                        setTimeout(() => {
-                            row.querySelector(".barcodeInput").focus();
-                        }, 100);
-                    } else {
-                        // Reset semua field kecuali jumlah
-                        row.querySelectorAll("input").forEach(input => {
-                            if (!input.classList.contains("jumlah")) {
-                                input.value = '';
+                    // ================================
+                    //  🔥 MERGE PRODUK YANG SAMA
+                    // ================================
+                    let allRows = document.querySelectorAll("#produkTable tbody tr");
+                    let selectedProductId = selected.value;
+                    let currentRow = row;
+                    let foundDuplicateRow = null;
+
+                    allRows.forEach(r => {
+                        if (r !== currentRow) {
+                            let prodSelect = r.querySelector(".produkSelect");
+                            if (prodSelect && prodSelect.value == selectedProductId) {
+                                foundDuplicateRow = r;
                             }
-                        });
-                    }
-                    hitungTotal();
-                }
-            });
+                        }
+                    });
 
-            // === Event jumlah berubah ===
-            document.addEventListener("input", e => {
-                if (e.target.classList.contains("jumlah")) hitungTotal();
-            });
+                    if (foundDuplicateRow) {
+                        let jumlahExisting = parseFloat(foundDuplicateRow.querySelector(".jumlah").value) || 1;
+                        let jumlahBaru = parseFloat(currentRow.querySelector(".jumlah").value) || 1;
 
-            // === Tambah baris produk ===
-            document.getElementById("addRow").addEventListener("click", function() {
-                let row = document.querySelector("#produkTable tbody tr").cloneNode(true);
-                row.querySelectorAll("input").forEach(input => {
-                    if (input.classList.contains("jumlah")) {
-                        input.value = "1";
-                    } else {
-                        input.value = "";
-                    }
-                });
-                row.querySelectorAll("select").forEach(select => select.selectedIndex = 0);
-                document.querySelector("#produkTable tbody").appendChild(row);
-                hitungTotal();
-            });
+                        // Tambah jumlah
+                        foundDuplicateRow.querySelector(".jumlah").value = jumlahExisting + jumlahBaru;
 
-            // === Hapus baris ===
-            document.addEventListener("click", function(e) {
-                if (e.target.closest(".removeRow")) {
-                    if (document.querySelectorAll("#produkTable tbody tr").length > 1) {
-                        e.target.closest("tr").remove();
+                        // Hapus baris baru
+                        currentRow.remove();
+
                         hitungTotal();
-                    } else {
-                        alert('Minimal harus ada satu baris produk!');
+                        return; // Stop, jangan lanjut autofill
                     }
-                }
-            });
+                    // ================================
 
-            // === BARCODE SCANNER dengan Kamera ===
-            document.addEventListener("click", function(e) {
-                if (e.target.closest(".scanBarcodeBtn")) {
-                    currentScanRow = e.target.closest("tr");
-                    const modal = new bootstrap.Modal(document.getElementById('barcodeScannerModal'));
-                    modal.show();
+
+                    // ===== AUTO-FILL PRODUK =====
+                    row.querySelector(".barcodeDisplay").value = selected.dataset.barcode || '-';
+                    row.querySelector(".hargaBeli").value = formatNumber(selected.dataset.harga || 0);
+                    row.querySelector(".kategoriNama").value = selected.dataset.kategori || '-';
+                    row.querySelector(".satuanNama").value = selected.dataset.satuan || '-';
+                    row.querySelector(".supplierNama").value = selected.dataset.supplierNama || '-';
+                    row.querySelector(".supplierId").value = selected.dataset.supplierId || '';
 
                     setTimeout(() => {
-                        startBarcodeScanner();
-                    }, 500);
-                }
-            });
+                        row.querySelector(".kadaluwarsaInput").focus();
+                    }, 100);
 
-            function startBarcodeScanner() {
-                if (html5QrcodeScanner) {
-                    html5QrcodeScanner.clear();
-                }
-
-                html5QrcodeScanner = new Html5Qrcode("reader");
-
-                const config = {
-                    fps: 10,
-                    qrbox: { width: 250, height: 250 },
-                    aspectRatio: 1.0
-                };
-
-                html5QrcodeScanner.start(
-                    { facingMode: "environment" },
-                    config,
-                    (decodedText, decodedResult) => {
-                        if (currentScanRow) {
-                            currentScanRow.querySelector(".barcodeInput").value = decodedText;
+                } else {
+                    row.querySelectorAll("input").forEach(input => {
+                        if (!input.classList.contains("jumlah")) {
+                            input.value = '';
                         }
+                    });
+                }
 
-                        html5QrcodeScanner.stop().then(() => {
-                            bootstrap.Modal.getInstance(document.getElementById('barcodeScannerModal')).hide();
-                            playBeep();
-                        });
-                    },
-                    (errorMessage) => {}
-                ).catch((err) => {
-                    alert("Gagal mengakses kamera: " + err);
-                });
+                hitungTotal();
             }
+        });
 
-            document.getElementById('barcodeScannerModal').addEventListener('hidden.bs.modal', function() {
-                if (html5QrcodeScanner) {
-                    html5QrcodeScanner.stop().catch(err => console.log(err));
+        // ===== EVENT JUMLAH/HARGA BERUBAH =====
+        document.addEventListener("input", e => {
+            if (e.target.classList.contains("jumlah") || e.target.classList.contains("hargaBeli")) {
+                hitungTotal();
+            }
+        });
+
+        // ===== TAMBAH BARIS =====
+        document.getElementById("addRow").addEventListener("click", function() {
+            let row = document.querySelector("#produkTable tbody tr").cloneNode(true);
+
+            row.querySelectorAll("input").forEach(input => {
+                if (input.classList.contains("jumlah")) {
+                    input.value = "1";
+                } else {
+                    input.value = "";
                 }
             });
 
-            function playBeep() {
-                const audioContext = new (window.AudioContext || window.webkitAudioContext)();
-                const oscillator = audioContext.createOscillator();
-                const gainNode = audioContext.createGain();
-
-                oscillator.connect(gainNode);
-                gainNode.connect(audioContext.destination);
-
-                oscillator.frequency.value = 800;
-                oscillator.type = 'sine';
-                gainNode.gain.value = 0.3;
-
-                oscillator.start(audioContext.currentTime);
-                oscillator.stop(audioContext.currentTime + 0.1);
-            }
-
-            // === Support Hardware Barcode Scanner ===
-            let barcodeBuffer = '';
-            let barcodeTimeout = null;
-
-            document.addEventListener("keypress", function(e) {
-                if (e.target.classList.contains("barcodeInput")) {
-                    clearTimeout(barcodeTimeout);
-
-                    if (e.key === 'Enter') {
-                        e.preventDefault();
-                        if (barcodeBuffer.length > 0) {
-                            e.target.value = barcodeBuffer;
-                            playBeep();
-                            barcodeBuffer = '';
-                        }
-                    } else {
-                        barcodeBuffer += e.key;
-                        barcodeTimeout = setTimeout(() => {
-                            barcodeBuffer = '';
-                        }, 100);
-                    }
-                }
-            });
+            row.querySelectorAll("select").forEach(select => select.selectedIndex = 0);
+            document.querySelector("#produkTable tbody").appendChild(row);
 
             hitungTotal();
         });
-    </script>
+
+        // ===== HAPUS BARIS =====
+        document.addEventListener("click", function(e) {
+            if (e.target.closest(".removeRow")) {
+                if (document.querySelectorAll("#produkTable tbody tr").length > 1) {
+                    e.target.closest("tr").remove();
+                    hitungTotal();
+                } else {
+                    alert('Minimal harus ada satu baris produk!');
+                }
+            }
+        });
+
+        // ===== HITUNG TOTAL AWAL =====
+        hitungTotal();
+
+    });
+</script>
+
 
     {{-- Style --}}
     <style>
@@ -454,19 +402,10 @@
             border-radius: 0.75rem;
         }
 
-        .input-group .btn {
-            height: 42px;
-        }
-
-        #reader {
-            border: 2px dashed #0d6efd;
-            border-radius: 8px;
-            padding: 10px;
-        }
-
-        .barcodeInput {
+        .barcodeDisplay {
             font-family: 'Courier New', monospace;
             font-weight: bold;
+            font-size: 0.95rem;
         }
     </style>
 @endsection
