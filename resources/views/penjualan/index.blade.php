@@ -41,7 +41,7 @@
                                 <th>Total</th>
                                 <th>Metode</th>
                                 <th>Kasir</th>
-                                <th style="width:10%">Aksi</th>
+                                <th style="width:15%">Aksi</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -74,6 +74,11 @@
                                             class="btn btn-sm btn-outline-info" data-toggle="tooltip"
                                             title="Lihat Detail">
                                             <i class="fas fa-eye"></i>
+                                        </a>
+                                        <a href="{{ route('penjualan.struk', $p->penjualan_id) }}"
+                                            class="btn btn-sm btn-outline-success" data-toggle="tooltip"
+                                            title="Cetak Struk" target="_blank">
+                                            <i class="fas fa-print"></i>
                                         </a>
                                     </td>
                                 </tr>

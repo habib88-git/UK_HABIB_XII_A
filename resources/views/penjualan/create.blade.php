@@ -154,9 +154,9 @@
                                                 <th width="80" class="rounded-start">Foto</th>
                                                 <th class="text-start">Produk</th>
                                                 <th width="100">Satuan</th>
-                                                <th width="130">Harga</th>
+                                                <th width="130" class="text-end">Harga</th>
                                                 <th width="120">Jumlah</th>
-                                                <th width="130">Subtotal</th>
+                                                <th width="130" class="text-end">Subtotal</th>
                                                 <th width="80" class="rounded-end">Aksi</th>
                                             </tr>
                                         </thead>
@@ -183,27 +183,27 @@
                             </h5>
 
                             <div class="bg-light rounded p-3 mb-3 shadow-sm">
-                                <div class="d-flex justify-content-between mb-2">
+                                <div class="d-flex justify-content-between align-items-center mb-2">
                                     <span class="text-muted">Subtotal</span>
-                                    <span id="subtotalHarga" class="fw-semibold">Rp 0</span>
+                                    <span id="subtotalHarga" class="fw-semibold text-end">Rp 0</span>
                                 </div>
-                                <div class="d-flex justify-content-between mb-2" id="diskonSection"
+                                <div class="d-flex justify-content-between align-items-center mb-2" id="diskonSection"
                                     style="display: none;">
                                     <span class="text-muted">
                                         <span class="badge bg-success me-1" id="badgeDiskon">Diskon</span>
                                     </span>
-                                    <span id="nominalDiskon" class="fw-semibold text-danger">- Rp 0</span>
+                                    <span id="nominalDiskon" class="fw-semibold text-danger text-end">- Rp 0</span>
                                 </div>
                                 <hr class="my-2">
-                                <div class="d-flex justify-content-between">
+                                <div class="d-flex justify-content-between align-items-center">
                                     <span class="fw-bold">Total</span>
-                                    <span id="totalHarga" class="fw-bold text-success fs-5">Rp 0</span>
+                                    <span id="totalHarga" class="fw-bold text-success fs-5 text-end">Rp 0</span>
                                 </div>
                                 <div id="diskonNote" class="alert alert-success mt-3 mb-0 py-2 px-3"
                                     style="display: none;">
                                     <small class="d-flex align-items-center mb-0">
                                         <i class="bi bi-check-circle-fill me-2"></i>
-                                        <span>Anda hemat <strong id="diskonHemat">Rp 0</strong>!</span>
+                                        <span>Anda hemat <strong id="diskonHemat" class="text-end">Rp 0</strong>!</span>
                                     </small>
                                 </div>
                             </div>
@@ -242,14 +242,14 @@
                                     Bayar</label>
                                 <div class="nice-box input-box">
                                     <input type="number" name="jumlah_bayar" id="jumlah_bayar" min="0"
-                                        class="nice-input" required>
+                                        class="nice-input text-end" required>
                                 </div>
                             </div>
 
                             <div class="mb-4" id="kembalianSection">
                                 <label class="form-label fw-semibold text-secondary">Kembalian</label>
                                 <div class="nice-box input-box">
-                                    <input type="text" id="kembalian" class="nice-input fw-bold text-primary"
+                                    <input type="text" id="kembalian" class="nice-input fw-bold text-primary text-end"
                                         readonly>
                                 </div>
                             </div>
@@ -653,6 +653,7 @@
             font-weight: 700;
             color: #28a745;
             font-size: 0.9rem;
+            text-align: right;
         }
 
         .produk-card .produk-stok {
@@ -760,6 +761,46 @@
             box-shadow: 0 0 0 2px rgba(13, 110, 253, 0.15);
         }
 
+        /* 🔥 PERINDAHAN NOMINAL KE KANAN */
+        .text-end {
+            text-align: right !important;
+        }
+
+        .table th.text-end,
+        .table td.text-end {
+            text-align: right;
+        }
+
+        .produk-card .text-end {
+            text-align: right;
+        }
+
+        /* Perbaikan layout produk card */
+        .produk-card .d-flex.align-items-start {
+            align-items: flex-start !important;
+        }
+
+        .produk-card .flex-grow-1 {
+            flex-grow: 1;
+        }
+
+        /* Perbaikan layout ringkasan transaksi */
+        .bg-light .d-flex.justify-content-between {
+            align-items: center;
+        }
+
+        .bg-light .fw-semibold,
+        .bg-light .fw-bold {
+            min-width: 120px;
+            text-align: right;
+        }
+
+        /* Perbaikan layout input jumlah bayar */
+        .nice-input.text-end {
+            text-align: right;
+        }
+
+        /* Perbaikan layout untuk mobile */
         @media (max-width: 768px) {
             .nice-box {
                 padding: 6px 12px;
@@ -793,6 +834,11 @@
 
             .bogo-info {
                 font-size: 0.7rem;
+            }
+
+            .bg-light .fw-semibold,
+            .bg-light .fw-bold {
+                min-width: 100px;
             }
         }
     </style>
@@ -1010,19 +1056,19 @@
                 if (hargaInfo.total_diskon > 0) {
                     hargaHTML = `
                     <div>
-                        <small class="text-decoration-line-through text-muted">${formatRupiah(hargaInfo.harga_asli)}</small>
-                        <div class="produk-harga">${formatRupiah(hargaInfo.harga)}</div>
+                        <small class="text-decoration-line-through text-muted d-block text-end">${formatRupiah(hargaInfo.harga_asli)}</small>
+                        <div class="produk-harga text-end">${formatRupiah(hargaInfo.harga)}</div>
                     </div>
                 `;
                 } else {
-                    hargaHTML = `<div class="produk-harga">${formatRupiah(hargaInfo.harga)}</div>`;
+                    hargaHTML = `<div class="produk-harga text-end">${formatRupiah(hargaInfo.harga)}</div>`;
                 }
 
                 // Info kadaluwarsa
                 let infoExpiry = '';
                 if (hargaInfo.hari_sisa !== undefined && hargaInfo.hari_sisa <= 28) {
                     infoExpiry =
-                        `<small class="text-danger d-block mt-1">⏰ ${hargaInfo.hari_sisa} hari lagi</small>`;
+                        `<small class="text-danger d-block mt-1 text-end">⏰ ${hargaInfo.hari_sisa} hari lagi</small>`;
                 }
 
                 const produkCard = document.createElement('div');
@@ -1127,13 +1173,13 @@
                 let hargaDisplay = '';
                 if (hargaInfo.total_diskon > 0) {
                     hargaDisplay = `
-                    <div>
-                        <small class="text-decoration-line-through text-muted">${formatRupiah(hargaInfo.harga_asli)}</small>
+                    <div class="text-end">
+                        <small class="text-decoration-line-through text-muted d-block">${formatRupiah(hargaInfo.harga_asli)}</small>
                         <div class="fw-semibold">${formatRupiah(hargaInfo.harga)}</div>
                     </div>
                 `;
                 } else {
-                    hargaDisplay = `<div class="fw-semibold">${formatRupiah(hargaInfo.harga)}</div>`;
+                    hargaDisplay = `<div class="fw-semibold text-end">${formatRupiah(hargaInfo.harga)}</div>`;
                 }
 
                 let row = `
@@ -1147,13 +1193,13 @@
                     <input type="hidden" name="produk_id[]" value="${produk.id}">
                 </td>
                 <td>${produk.satuan}</td>
-                <td>${hargaDisplay}</td>
+                <td class="text-end">${hargaDisplay}</td>
                 <td><input type="number" name="jumlah_produk[]" value="1" min="1" max="${maxQty}"
                        class="form-control form-control-sm jumlah"
                        data-harga="${hargaInfo.harga}"
                        data-is-bogo="${hargaInfo.is_bogo}"
                        data-stok-asli="${produk.stok}"></td>
-                <td class="subtotal fw-semibold">${formatRupiah(hargaInfo.harga)}</td>
+                <td class="subtotal fw-semibold text-end">${formatRupiah(hargaInfo.harga)}</td>
                 <td><button type="button" class="btn btn-outline-danger btn-sm btn-remove removeItem">
                     <i class="bi bi-trash"></i></button></td>
             </tr>`;

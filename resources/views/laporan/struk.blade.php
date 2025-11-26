@@ -110,7 +110,13 @@
             line-height: 1.4;
         }
 
-        /* Untuk memastikan tidak ada page break */
+        .diskon-detail {
+            font-size: 7px;
+            color: #666;
+            padding-left: 8px;
+            font-style: italic;
+        }
+
         @media print {
             body {
                 -webkit-print-color-adjust: exact;
@@ -171,22 +177,73 @@
 
     <div class="line"></div>
 
+    @php
+        // 🔥 HITUNG ULANG DISKON DARI DETAIL PENJUALAN
+        $subtotalAsli = 0; // Total jika tidak ada diskon
+        $subtotalSetelahDiskon = 0; // Total setelah diskon expiry
+        
+        foreach ($penjualan->detailPenjualans as $d) {
+            $subtotalAsli += $d->produk->harga_jual * $d->jumlah_produk;
+            $subtotalSetelahDiskon += $d->subtotal;
+        }
+        
+        // Diskon expiry = selisih harga asli dengan harga setelah diskon
+        $diskonExpiry = $subtotalAsli - $subtotalSetelahDiskon;
+        
+        // Diskon member = total diskon - diskon expiry
+        $diskonMember = $penjualan->diskon - $diskonExpiry;
+        
+        // Hitung total item untuk cek syarat diskon member
+        $totalItem = $penjualan->detailPenjualans->sum('jumlah_produk');
+    @endphp
+
     <table class="total-section">
         <tr>
             <td style="width: 50%;">Subtotal</td>
             <td class="right">Rp {{ number_format($penjualan->total_harga, 0, ',', '.') }}</td>
         </tr>
-        @if ($penjualan->diskon > 0)
+        
+        {{-- 🔥 DISKON PRODUK (EXPIRY) --}}
+        @if ($diskonExpiry > 0)
             <tr>
-                <td>Diskon ({{ floor($penjualan->total_harga / 100000) * 5 }}%)</td>
-                <td class="right">- Rp {{ number_format($penjualan->diskon, 0, ',', '.') }}</td>
+                <td>Diskon Produk</td>
+                <td class="right">- Rp {{ number_format($diskonExpiry, 0, ',', '.') }}</td>
+            </tr>
+            <tr>
+                <td colspan="2" class="diskon-detail">
+                    (Produk mendekati kadaluwarsa)
+                </td>
             </tr>
         @endif
-        <tr class="total-row">
-            <td><strong>TOTAL</strong></td>
-            <td class="right"><strong>Rp
-                    {{ number_format($penjualan->total_harga - $penjualan->diskon, 0, ',', '.') }}</strong></td>
-        </tr>
+        
+        {{-- 🔥 DISKON MEMBER --}}
+        @if ($diskonMember > 0 && $penjualan->pelanggan_id)
+            <tr>
+                <td>Diskon Member</td>
+                <td class="right">- Rp {{ number_format($diskonMember, 0, ',', '.') }}</td>
+            </tr>
+            @php
+                $alasanDiskon = [];
+                if ($totalItem >= 10) $alasanDiskon[] = "Beli {$totalItem} item";
+                if ($penjualan->total_harga >= 100000) $alasanDiskon[] = "Belanja ≥Rp100k";
+            @endphp
+            @if(count($alasanDiskon) > 0)
+            <tr>
+                <td colspan="2" class="diskon-detail">
+                    ({{ implode(' + ', $alasanDiskon) }})
+                </td>
+            </tr>
+            @endif
+        @endif
+        
+        {{-- 🔥 TOTAL SEMUA DISKON (jika ada lebih dari 1 jenis) --}}
+        @if ($penjualan->diskon > 0 && ($diskonExpiry > 0 && $diskonMember > 0))
+            <tr style="border-top: 1px dashed #ccc; padding-top: 2px;">
+                <td><strong>Total Diskon</strong></td>
+                <td class="right"><strong>- Rp {{ number_format($penjualan->diskon, 0, ',', '.') }}</strong></td>
+            </tr>
+        @endif
+        
         <tr>
             <td>Bayar ({{ ucfirst($penjualan->pembayaran->metode ?? '-') }})</td>
             <td class="right">Rp {{ number_format($penjualan->pembayaran->jumlah ?? 0, 0, ',', '.') }}</td>
@@ -200,21 +257,16 @@
     <div class="line"></div>
 
     @if ($penjualan->diskon > 0)
-        <p class="center promo-text" style="margin: 5px 0;">Anda hemat Rp
-            {{ number_format($penjualan->diskon, 0, ',', '.') }}</p>
+        <p class="center promo-text" style="margin: 5px 0; font-weight: bold;">
+            🎉 Anda hemat Rp {{ number_format($penjualan->diskon, 0, ',', '.') }} 🎉
+        </p>
         <div class="line"></div>
     @endif
 
     <p class="center" style="margin: 5px 0; font-size: 9px;">Terima Kasih Atas Kunjungan Anda</p>
     <p class="center" style="font-size: 8px; margin: 3px 0;">Barang yang sudah dibeli<br>tidak dapat dikembalikan</p>
 
-    <div class="line"></div>
-
-    <p class="center promo-text" style="margin: 5px 0 10px 0;">
-         Promo Diskon Belanja! <br>
-        Diskon 5% setiap kelipatan Rp 100.000<br>
-        Belanja lebih banyak, hemat lebih banyak!
-    </p>
+   
 
     <script>
         window.onload = function() {

@@ -577,7 +577,7 @@ class PenjualanController extends Controller
     public function show(string $id)
     {
         // Ambil data penjualan dengan semua relasi
-        Penjualans::with([
+        $penjualan = Penjualans::with([
             'pelanggan',
             'user',
             'detailPenjualans.produk',
